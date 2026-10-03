@@ -112,9 +112,16 @@ export interface TextProps extends CommonProps {
   as?: string | undefined;
   /** Render URLs and email addresses as links. */
   linkify?: boolean | undefined;
+  /**
+   * Discouraged. Insert the value as HTML instead of showing it as text.
+   * Text items are read by other platforms (Android, iOS) that will not
+   * render HTML, and markup in a value is a script injection route. Prefer
+   * separate items styled by their components, or a markdown item.
+   */
+  unsafeLiteral?: boolean | undefined;
 }
 
-/** Inline text: lines joined by `<br>`. */
+/** Inline text: lines joined by `<br>`. Escaped by default: markup in a value shows as typed. */
 export const text: ComponentSpec<TextItem, TextProps> = {
   type: 'text',
   volatile: volatileFor('text'),
@@ -124,22 +131,26 @@ export const text: ComponentSpec<TextItem, TextProps> = {
     const placeholder = fromItem.length === 0;
     const tag = props.as ?? 'span';
     const content = placeholder ? textLines(props.placeholder) : fromItem;
-    return h(
+    const element = h(
       tag,
       {
         class: props.className,
         itemprop: props.itemProp,
         ...contentAttributes('text', ref, placeholder),
         'data-text-linkify': props.linkify ? '' : undefined,
+        'data-text-unsafe-literal': props.unsafeLiteral ? '' : undefined,
       },
       ...lines(content, (line) => linked(line, props.linkify === true), tag !== 'title' && tag !== 'option'),
     );
+    if (props.unsafeLiteral && !placeholder) element.html = ref.item!.value;
+    return element;
   },
   propsFrom: (element) => ({
     ...common(element),
     placeholder: '',
     as: element.localName,
     linkify: element.hasAttribute('data-text-linkify'),
+    unsafeLiteral: element.hasAttribute('data-text-unsafe-literal'),
   }),
 };
 
@@ -157,7 +168,7 @@ export const textBlock: ComponentSpec<TextItem, TextBlockProps> = {
     const fromItem = ref.item ? textParagraphs(ref.item.value) : [];
     const placeholder = fromItem.length === 0;
     const paragraphs = placeholder ? textParagraphs(props.placeholder) : fromItem;
-    return h(
+    const element = h(
       props.as ?? 'div',
       {
         class: props.className,
@@ -165,11 +176,14 @@ export const textBlock: ComponentSpec<TextItem, TextBlockProps> = {
         ...contentAttributes('text', ref, placeholder),
         'data-text-layout': 'paragraphs',
         'data-text-linkify': props.linkify ? '' : undefined,
+        'data-text-unsafe-literal': props.unsafeLiteral ? '' : undefined,
       },
       ...paragraphs.map((paragraph) =>
         h('p', { class: props.paragraphClassName }, ...lines(paragraph, (line) => linked(line, props.linkify === true), true)),
       ),
     );
+    if (props.unsafeLiteral && !placeholder) element.html = ref.item!.value;
+    return element;
   },
   propsFrom: (element) => ({
     ...text.propsFrom(element),

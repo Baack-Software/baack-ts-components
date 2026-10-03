@@ -2,24 +2,13 @@
 
 import type { MoneyItem } from '@baack-software/baack-ts-client';
 
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", apos: "'", nbsp: ' ' };
-
-function decode(text: string): string {
-  return text.replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, (_, entity: string) => ENTITIES[entity] ?? '');
-}
-
 /**
- * Text items are plain text, but some legacy values carry HTML (`<p>`
- * wrappers, `<br/>`). Keep only that structure: `<p>` becomes a paragraph and
- * `<br>` a line break; other tags are dropped. Returns paragraphs, each a list
- * of lines. The result is text, never markup.
+ * The structure of a plain text value: paragraphs separated by blank lines,
+ * each a list of lines. Nothing is interpreted: markup and entities stay as
+ * typed and are shown as text (open question 40).
  */
 export function textParagraphs(value: string): string[][] {
-  const normalised = value
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-    .replace(/<[^>]*>/g, '');
-  return decode(normalised)
+  return value
     .split(/\n\s*\n/)
     .map((paragraph) =>
       paragraph
