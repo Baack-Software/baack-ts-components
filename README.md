@@ -86,6 +86,30 @@ cell still appears, and the editor moves a row's cells together.
 </ContentRows>
 ```
 
+## Prices with phases: `ContentPriceSpecification`
+
+An introductory offer, then a standard price. Each phase is a schema.org
+`UnitPriceSpecification` inside the Offer, holding its own money item
+(rendered with `offer`, so `price` and `priceCurrency` belong to the phase)
+and a note. The billing terms come from your items, such as a long item for
+the months the offer lasts:
+
+```tsx
+<div itemProp="offers" itemScope itemType="https://schema.org/Offer">
+  <ContentPriceSpecification durationMonths={months.item?.value}>
+    <ContentMoney content={intro} offer placeholder="Contact us" />
+    <ContentText content={introNote} placeholder="for your first 6 months" />
+  </ContentPriceSpecification>
+  <ContentPriceSpecification unitCode="MON" billingStart={months.item?.value}>
+    <ContentMoney content={standard} offer placeholder="Contact us" />
+    <ContentText content={standardNote} placeholder="/ per month after that" />
+  </ContentPriceSpecification>
+</div>
+```
+
+The phases can share item names at sort orders 0 and 1. The wrapper is not
+an item, so the editor edits the money and text inside it as usual.
+
 ## Single items
 
 `ContentText`, `ContentTextBlock`, `ContentMeta`, `ContentMarkdown`,

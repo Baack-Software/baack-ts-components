@@ -305,6 +305,38 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
   },
 };
 
+/**
+ * One phase of a price inside a schema.org Offer, such as an introductory
+ * offer then a standard price. Not an item: it wraps the money and text
+ * items of the phase (render the money with `offer`, so its `price` and
+ * `priceCurrency` belong to this specification) and states the billing
+ * terms as microdata. Values for the terms come from the page's items, for
+ * example a long item holding the number of months.
+ */
+export interface PriceSpecificationProps {
+  className?: string | undefined;
+  /** How long this price lasts, in months: `billingDuration` as an ISO 8601 duration. */
+  durationMonths?: number | undefined;
+  /** How many billing cycles pass before this price starts: `billingStart`. */
+  billingStart?: number | undefined;
+  /** UN/CEFACT code of the unit the price is per, e.g. `MON` for a month: `unitCode`. */
+  unitCode?: string | undefined;
+}
+
+export const UNIT_PRICE_SPECIFICATION = 'https://schema.org/UnitPriceSpecification';
+
+/** The wrapper and its microdata; the phase's own items go inside, after these children. */
+export function priceSpecification(props: PriceSpecificationProps): VElement {
+  const meta = (itemprop: string, content: string | undefined) => (content === undefined ? [] : [h('meta', { itemprop, content })]);
+  return h(
+    'span',
+    { class: props.className, itemprop: 'priceSpecification', itemscope: '', itemtype: UNIT_PRICE_SPECIFICATION },
+    ...meta('billingDuration', props.durationMonths === undefined ? undefined : `P${props.durationMonths}M`),
+    ...meta('billingStart', props.billingStart === undefined ? undefined : String(props.billingStart)),
+    ...meta('unitCode', props.unitCode),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Numbers
 // ---------------------------------------------------------------------------

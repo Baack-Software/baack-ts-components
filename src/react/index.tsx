@@ -114,6 +114,16 @@ export function ContentImage(props: Content<ImageItem> & spec.ImageProps) {
   return toReact(spec.image.render(props.content, props));
 }
 
+/**
+ * One phase of a price in a schema.org Offer (an introductory offer, then a
+ * standard price). Put the phase's `ContentMoney offer` and its note inside.
+ */
+export function ContentPriceSpecification(props: spec.PriceSpecificationProps & { children?: ReactNode }) {
+  const node = spec.priceSpecification(props);
+  const terms = node.children.map((child, index) => toReact(child, index));
+  return toReact(node, undefined, [...terms, createElement(Fragment, { key: 'phase' }, props.children)]);
+}
+
 // ---------------------------------------------------------------------------
 // Lists, rows and sections
 // ---------------------------------------------------------------------------
