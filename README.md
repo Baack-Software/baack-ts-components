@@ -1,10 +1,27 @@
 # Baack content components
 
 Components that render [Baack](https://www.baack.co) content items on a page,
-in a way the Baack editor can edit in place. Built here first; they will
-become the `baack-ts-components` package (depending on `baack-ts-client`,
-and depended on by the editor). React today; the rendering lives in a
-framework-free core, so other frameworks can follow.
+in a way the Baack editor can edit in place. Depends on `baack-ts-client`;
+the editor (`baack-ts-editor`) depends on this package. React today; the
+rendering lives in a framework-free core, so other frameworks can follow.
+
+## Getting started
+
+```sh
+(cd ../baack-ts-client && npm install && npm run build)   # linked with file: for now
+npm install
+npm run build
+```
+
+| Import | What it is |
+| --- | --- |
+| `@baack-software/baack-ts-components/react` | React components |
+| `@baack-software/baack-ts-components/components` | Framework-free renderers (the editor's write-back) |
+| `@baack-software/baack-ts-components/format` | Formatting: text, links, money, dates, numbers |
+| `@baack-software/baack-ts-components/vnode` | The neutral element tree, a DOM builder and `patch` |
+
+The contract the editor relies on is documented in `baack-ts-editor`
+(`docs/components.md`).
 
 ## Lists from the content matrix: `Content<Type>List`
 
@@ -13,7 +30,7 @@ Every Baack item has a name and a sort order, so a name with sort orders 0,
 with your own template for each entry:
 
 ```tsx
-import { ContentTextList, ContentText } from 'baack-ts-components';
+import { ContentTextList, ContentText } from '@baack-software/baack-ts-components/react';
 
 <ContentTextList name="feature" items={view.raw.texts} as="ul" fallback={3}>
   {(content) => (

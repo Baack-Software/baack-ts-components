@@ -1,0 +1,40 @@
+{
+  "name": "@baack-software/baack-ts-components",
+  "version": "0.0.1",
+  "description": "Content components that render Baack items so the Baack editor can edit them in place",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/core/components.js",
+  "types": "dist/core/components.d.ts",
+  "exports": {
+    ".": "./dist/core/components.js",
+    "./components": "./dist/core/components.js",
+    "./format": "./dist/core/format.js",
+    "./vnode": "./dist/core/vnode.js",
+    "./react": "./dist/react/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@baack-software/baack-ts-client": "file:../baack-ts-client"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}
