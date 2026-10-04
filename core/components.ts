@@ -543,3 +543,72 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
     };
   },
 };
+
+// ---------------------------------------------------------------------------
+// Groups: lists, table rows, and sections
+// ---------------------------------------------------------------------------
+
+/** Attributes for a container that renders every item of a name in sort order. */
+export function listAttributes(type: ContentType, name: string): Record<string, string> {
+  return { [`data-${type}-list`]: name };
+}
+
+/**
+ * The refs a list renders: every item of a name in sort order, or, while
+ * there are none, `fallback` empty slots (sort orders 0 to n - 1) so their
+ * placeholders show and the editor can create them.
+ */
+export function listRefs<T extends { name: string; sortOrder: number }>(items: readonly T[], name: string, fallback = 0): ContentRef<T>[] {
+  const found = items.filter((item) => item.name === name).sort((a, b) => a.sortOrder - b.sortOrder);
+  if (found.length > 0) return found.map((item) => ({ name, sortOrder: item.sortOrder, item }));
+  return Array.from({ length: fallback }, (_, sortOrder) => ({ name, sortOrder }));
+}
+
+/**
+ * The sort orders of a table's rows: every sort order used by any of its
+ * column names, so a row with an empty cell still appears.
+ */
+export function rowSortOrders(items: readonly { name: string; sortOrder: number }[], columns: readonly string[], fallback = 0): number[] {
+  const orders = new Set(items.filter((item) => columns.includes(item.name)).map((item) => item.sortOrder));
+  if (orders.size === 0) return Array.from({ length: fallback }, (_, index) => index);
+  return [...orders].sort((a, b) => a - b);
+}
+
+/** Attributes for a table row: the column items that share one sort order. */
+export function rowAttributes(sortOrder: number): Record<string, string> {
+  return { 'data-content-row': String(sortOrder) };
+}
+
+export const ROWS_ATTRIBUTE = 'data-content-rows';
+export const ROW_ATTRIBUTE = 'data-content-row';
+
+export interface SectionProps {
+  className?: string | undefined;
+  /** The section name used while the item does not exist. */
+  placeholder: string;
+  as?: string | undefined;
+}
+
+/**
+ * A page section ordered by a text item whose value names the section. The
+ * value goes in `data-section`; the section's content is the page's own and
+ * is never touched, like a boolean's.
+ */
+export const section: ComponentSpec<TextItem, SectionProps> = {
+  type: 'text',
+  volatile: volatileFor('text', 'data-section'),
+  ownsChildren: false,
+  render(ref, props) {
+    const value = ref.item?.value.trim();
+    return h(props.as ?? 'section', {
+      class: props.className,
+      ...contentAttributes('text', ref, !value),
+      'data-section': value || props.placeholder,
+    });
+  },
+  propsFrom: (element) => ({
+    className: element.getAttribute('class') ?? undefined,
+    placeholder: element.getAttribute('data-section') ?? '',
+    as: element.localName,
+  }),
+};

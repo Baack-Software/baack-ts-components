@@ -1,7 +1,7 @@
 // React versions of the canonical content components. Each is a thin wrapper:
 // the rendering lives in components/core, shared with the editor.
 
-import { createElement, type ReactNode } from 'react';
+import { createElement, Fragment, type ReactNode } from 'react';
 import type {
   BooleanItem,
   DateTimeItem,
@@ -16,7 +16,7 @@ import type {
   TextItem,
 } from '@baack-software/baack-ts-client';
 import * as spec from '../core/components.ts';
-import type { ContentRef } from '../core/components.ts';
+import type { ContentRef, ContentType } from '../core/components.ts';
 import type { VNode } from '../core/vnode.ts';
 
 export type { ContentRef } from '../core/components.ts';
@@ -113,3 +113,77 @@ export function ContentLink(props: Content<LinkItem> & spec.LinkProps) {
 export function ContentImage(props: Content<ImageItem> & spec.ImageProps) {
   return toReact(spec.image.render(props.content, props));
 }
+
+// ---------------------------------------------------------------------------
+// Lists, rows and sections
+// ---------------------------------------------------------------------------
+
+export interface ContentListProps<T extends { name: string; sortOrder: number }> {
+  /** The item name the list shows. */
+  name: string;
+  /** The entity view's items of this type, for example `view.raw.texts`. */
+  items: readonly T[] | undefined;
+  /** Renders one entry. Put the item's component inside; anything around it moves with it when reordered. */
+  children: (content: ContentRef<T>, index: number) => ReactNode;
+  /** Empty slots to show while the list has no items, so their placeholders appear. Default 0. */
+  fallback?: number;
+  /** Container element; default `ul`. */
+  as?: string;
+  className?: string;
+}
+
+/**
+ * Every item of a name, in sort order, each rendered by `children`. The
+ * container is marked so the editor can reorder, add and remove entries.
+ */
+export function ContentList<T extends { name: string; sortOrder: number }>(props: ContentListProps<T> & { type: ContentType }) {
+  const refs = spec.listRefs(props.items ?? [], props.name, props.fallback);
+  return createElement(
+    props.as ?? 'ul',
+    { className: props.className, ...spec.listAttributes(props.type, props.name) },
+    ...refs.map((ref, index) => createElement(Fragment, { key: `${ref.sortOrder}-${index}` }, props.children(ref, index))),
+  );
+}
+
+function listOf<T extends { name: string; sortOrder: number }>(type: ContentType) {
+  return (props: ContentListProps<T>) => ContentList<T>({ ...props, type });
+}
+
+export const ContentTextList = listOf<TextItem>('text');
+export const ContentMarkdownList = listOf<MarkdownItem>('markdown');
+export const ContentMoneyList = listOf<MoneyItem>('money');
+export const ContentLongList = listOf<LongItem>('long');
+export const ContentDoubleList = listOf<DoubleItem>('double');
+export const ContentDateList = listOf<DateTimeItem>('datetime');
+export const ContentLinkList = listOf<LinkItem>('link');
+export const ContentImageList = listOf<ImageItem>('image');
+
+export interface ContentRowsProps {
+  /** The sort orders of the rows, for example from `rowSortOrders(items, columns)`. */
+  rows: readonly number[];
+  /** Renders one row's cells. The row element is provided. */
+  children: (sortOrder: number, index: number) => ReactNode;
+  /** Row element; default `tr`. */
+  rowAs?: string;
+  /** Container element; default `tbody`. */
+  as?: string;
+  className?: string;
+}
+
+/** Table rows: each row is the column items that share one sort order, and moves as one. */
+export function ContentRows(props: ContentRowsProps) {
+  return createElement(
+    props.as ?? 'tbody',
+    { className: props.className, [spec.ROWS_ATTRIBUTE]: '' },
+    ...props.rows.map((sortOrder, index) =>
+      createElement(props.rowAs ?? 'tr', { key: sortOrder, ...spec.rowAttributes(sortOrder) }, props.children(sortOrder, index)),
+    ),
+  );
+}
+
+/** A page section ordered by a text item naming it; render inside a `ContentTextList` of the section items. */
+export function ContentSection(props: Content<TextItem> & spec.SectionProps & { children?: ReactNode }) {
+  return toReact(spec.section.render(props.content, props), undefined, props.children);
+}
+
+export { listRefs, rowSortOrders } from '../core/components.ts';
