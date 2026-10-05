@@ -5,6 +5,11 @@
 // Every rendering choice that a prop controls is also written to the element
 // (`data-text-layout`, `data-locale`, ...), so the editor can recover the
 // props from the page and re-render an item exactly as the component did.
+//
+// The components are a closed set scoped to the API's concepts: one per item
+// type, plus lists, rows and sections over the `name : sortOrder` matrix.
+// Domain meaning (breadcrumbs, prices, FAQs) is composed by the page from
+// these, with pass-through attributes for accessibility and microdata.
 
 import type {
   BooleanItem,
@@ -64,10 +69,41 @@ export interface ComponentSpec<I, P> {
   propsFrom(element: Element): P;
 }
 
+/**
+ * Attributes the page adds to a component's root element, by DOM name:
+ * `data-*`, `aria-*`, `id`, `role`, `title`, `lang`, `dir`, `tabindex` and
+ * microdata (`itemscope`, `itemtype`, `itemid`, `itemref`). They do not
+ * change how the value renders, so the editor never reads them back: its
+ * write-back patches only the attributes a component manages and leaves
+ * these in place. Anything else, and the DOM contract's own attributes, is
+ * dropped.
+ */
+export type PassThrough = Readonly<Record<string, string | undefined>>;
+
+const PASS_THROUGH_NAMES = new Set(['id', 'role', 'title', 'lang', 'dir', 'tabindex', 'itemscope', 'itemtype', 'itemid', 'itemref']);
+const CONTRACT_ATTRIBUTE = /^data-(placeholder|section|content-rows?|[a-z]+-(name|sort-order|urn|list))$/;
+
+/** True for an attribute a page may pass through to a component's root. */
+export function isPassThrough(name: string): boolean {
+  if (CONTRACT_ATTRIBUTE.test(name)) return false;
+  return PASS_THROUGH_NAMES.has(name) || /^(data|aria)-[a-z0-9-]+$/.test(name);
+}
+
+/** The allowed subset of `attributes`, ready to spread first into a root's attributes. */
+export function passThrough(attributes: PassThrough | undefined): Record<string, string | undefined> {
+  const allowed: Record<string, string | undefined> = {};
+  for (const [name, value] of Object.entries(attributes ?? {})) {
+    if (isPassThrough(name)) allowed[name] = value;
+  }
+  return allowed;
+}
+
 interface CommonProps {
   className?: string | undefined;
   /** schema.org microdata property, e.g. "name" inside a Product. */
   itemProp?: string | undefined;
+  /** Accessibility, microdata and data attributes for the root element; see `PassThrough`. */
+  attributes?: PassThrough | undefined;
 }
 
 /**
@@ -134,6 +170,7 @@ export const text: ComponentSpec<TextItem, TextProps> = {
     const element = h(
       tag,
       {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.itemProp,
         ...contentAttributes('text', ref, placeholder),
@@ -171,6 +208,7 @@ export const textBlock: ComponentSpec<TextItem, TextBlockProps> = {
     const element = h(
       props.as ?? 'div',
       {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.itemProp,
         ...contentAttributes('text', ref, placeholder),
@@ -197,6 +235,7 @@ export interface MetaProps {
   /** `property` attribute, e.g. "og:title". */
   property?: string | undefined;
   placeholder: string;
+  attributes?: PassThrough | undefined;
 }
 
 /** A head `<meta>` whose `content` is a text item. */
@@ -208,6 +247,7 @@ export const meta: ComponentSpec<TextItem, MetaProps> = {
     const fromItem = ref.item ? textLines(ref.item.value).join(' ') : '';
     const placeholder = fromItem === '';
     return h('meta', {
+      ...passThrough(props.attributes),
       name: props.name,
       property: props.property,
       content: placeholder ? props.placeholder : fromItem,
@@ -241,6 +281,7 @@ function rendered<I extends MarkdownItem | TemplateItem>(type: 'markdown' | 'tem
       const html = ref.item?.value;
       const placeholder = !html?.trim();
       const element = h(props.as ?? 'div', {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.itemProp,
         ...contentAttributes(type, ref, placeholder),
@@ -278,12 +319,13 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
   render(ref, props) {
     const item = ref.item;
     if (!item) {
-      return h('span', { class: props.className, ...contentAttributes('money', ref, true) }, props.placeholder);
+      return h('span', { ...passThrough(props.attributes), class: props.className, ...contentAttributes('money', ref, true) }, props.placeholder);
     }
     const amount = moneyAmount(item);
     return h(
       'span',
       {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.offer ? 'price' : props.itemProp,
         content: props.offer ? amount : undefined,
@@ -305,38 +347,6 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
   },
 };
 
-/**
- * One phase of a price inside a schema.org Offer, such as an introductory
- * offer then a standard price. Not an item: it wraps the money and text
- * items of the phase (render the money with `offer`, so its `price` and
- * `priceCurrency` belong to this specification) and states the billing
- * terms as microdata. Values for the terms come from the page's items, for
- * example a long item holding the number of months.
- */
-export interface PriceSpecificationProps {
-  className?: string | undefined;
-  /** How long this price lasts, in months: `billingDuration` as an ISO 8601 duration. */
-  durationMonths?: number | undefined;
-  /** How many billing cycles pass before this price starts: `billingStart`. */
-  billingStart?: number | undefined;
-  /** UN/CEFACT code of the unit the price is per, e.g. `MON` for a month: `unitCode`. */
-  unitCode?: string | undefined;
-}
-
-export const UNIT_PRICE_SPECIFICATION = 'https://schema.org/UnitPriceSpecification';
-
-/** The wrapper and its microdata; the phase's own items go inside, after these children. */
-export function priceSpecification(props: PriceSpecificationProps): VElement {
-  const meta = (itemprop: string, content: string | undefined) => (content === undefined ? [] : [h('meta', { itemprop, content })]);
-  return h(
-    'span',
-    { class: props.className, itemprop: 'priceSpecification', itemscope: '', itemtype: UNIT_PRICE_SPECIFICATION },
-    ...meta('billingDuration', props.durationMonths === undefined ? undefined : `P${props.durationMonths}M`),
-    ...meta('billingStart', props.billingStart === undefined ? undefined : String(props.billingStart)),
-    ...meta('unitCode', props.unitCode),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Numbers
 // ---------------------------------------------------------------------------
@@ -357,6 +367,7 @@ function numeric<I extends LongItem | DoubleItem>(type: 'long' | 'double'): Comp
       return h(
         'data',
         {
+          ...passThrough(props.attributes),
           class: props.className,
           itemprop: props.itemProp,
           value: item ? String(item.value) : undefined,
@@ -392,6 +403,7 @@ export const dateTime: ComponentSpec<DateTimeItem, DateProps> = {
     return h(
       'time',
       {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.itemProp,
         datetime: Number.isNaN(instant) ? undefined : new Date(instant).toISOString(),
@@ -435,6 +447,7 @@ export const boolean: ComponentSpec<BooleanItem, BooleanProps> = {
     const value = ref.item ? ref.item.value : props.fallback === true;
     const shown = props.invert ? !value : value;
     return h(props.as ?? 'div', {
+      ...passThrough(props.attributes),
       class: props.className,
       hidden: shown ? undefined : '',
       ...contentAttributes('boolean', ref, !ref.item),
@@ -465,6 +478,7 @@ export const latLong: ComponentSpec<LatLongItem, LatLongProps> = {
   render(ref, props) {
     const item = ref.item;
     const attrs = {
+      ...passThrough(props.attributes),
       class: props.className,
       itemprop: props.itemProp,
       itemscope: '',
@@ -492,6 +506,12 @@ export interface LinkProps extends CommonProps {
   placeholder: string;
   /** Target while the item does not exist. Defaults to "#". */
   placeholderHref?: string | undefined;
+  /**
+   * Microdata property for the link's text, which is then wrapped in a
+   * `<span itemprop>`; for example `name` on a ListItem whose `item` is the
+   * link itself (`itemProp="item"`).
+   */
+  textItemProp?: string | undefined;
 }
 
 /** An `<a>` from a link item: `href`, `rel`, `hreflang` from `lang`, and its text (or the href). */
@@ -501,9 +521,11 @@ export const link: ComponentSpec<LinkItem, LinkProps> = {
   ownsChildren: true,
   render(ref, props) {
     const item = ref.item;
+    const label = item ? item.text || item.href : props.placeholder;
     return h(
       'a',
       {
+        ...passThrough(props.attributes),
         class: props.className,
         itemprop: props.itemProp,
         href: item ? item.href : props.placeholderHref ?? '#',
@@ -511,10 +533,14 @@ export const link: ComponentSpec<LinkItem, LinkProps> = {
         hreflang: item?.lang || undefined,
         ...contentAttributes('link', ref, !item),
       },
-      item ? item.text || item.href : props.placeholder,
+      props.textItemProp ? h('span', { itemprop: props.textItemProp }, label) : label,
     );
   },
-  propsFrom: (element) => ({ ...common(element), placeholder: '' }),
+  propsFrom: (element) => ({
+    ...common(element),
+    placeholder: '',
+    textItemProp: element.querySelector(':scope > span[itemprop]')?.getAttribute('itemprop') ?? undefined,
+  }),
 };
 
 // ---------------------------------------------------------------------------
@@ -533,6 +559,8 @@ export interface ImageProps {
   priority?: boolean | undefined;
   itemProp?: string | undefined;
   imgClassName?: string | undefined;
+  /** Pass-through attributes for the `<picture>`; see `PassThrough`. */
+  attributes?: PassThrough | undefined;
 }
 
 /**
@@ -546,7 +574,7 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
   ownsChildren: true,
   render(ref, props) {
     const item = ref.item;
-    const attrs = { class: props.className, ...contentAttributes('image', ref, !item?.src) };
+    const attrs = { ...passThrough(props.attributes), class: props.className, ...contentAttributes('image', ref, !item?.src) };
     if (!item?.src) return h('picture', attrs);
     return h(
       'picture',
@@ -619,6 +647,7 @@ export interface SectionProps {
   /** The section name used while the item does not exist. */
   placeholder: string;
   as?: string | undefined;
+  attributes?: PassThrough | undefined;
 }
 
 /**
@@ -633,6 +662,7 @@ export const section: ComponentSpec<TextItem, SectionProps> = {
   render(ref, props) {
     const value = ref.item?.value.trim();
     return h(props.as ?? 'section', {
+      ...passThrough(props.attributes),
       class: props.className,
       ...contentAttributes('text', ref, !value),
       'data-section': value || props.placeholder,

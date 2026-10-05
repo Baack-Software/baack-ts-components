@@ -23,6 +23,30 @@ npm run build
 The contract the editor relies on is documented in `baack-ts-editor`
 (`docs/components.md`).
 
+## Principles: bridging components, scoped to the API
+
+These components are the bridge between a site's markup and Baack content,
+for site developers and for agents (the onboarding skill) converting a page.
+They stay small and generic so they fit any site:
+
+- **One component per API concept.** One per item type, plus `Content<Type>List`,
+  `ContentRows` and `ContentSection` for the `name : sortOrder` matrix. Nothing
+  else belongs here.
+- **No domain components.** Breadcrumbs, price phases, FAQs, feature grids and
+  cards are compositions: build them in the site from these components, with
+  the site's own UI library (shadcn/ui on www.baack.co) for the markup and
+  styling. A new component here needs a new API concept, not a new page.
+- **Compose with pass-through attributes.** Every component, list and row
+  container accepts `data-*`, `aria-*`, `id`, `role`, `title`, `lang`, `dir`,
+  `tabIndex` and microdata (`itemScope`, `itemType`, `itemID`, `itemRef`) on its
+  root, and containers accept a component as `as`. That is enough for
+  accessibility, schema.org structure and UI libraries' `asChild` slots.
+- **What changes the rendered value is a prop, written to the element.** Only
+  those props are read back by the editor; pass-through attributes are left in
+  place by its write-back.
+- **Fix gaps here, generically.** If a site needs something a component cannot
+  express, add a generic prop or attribute rather than a copy in the site.
+
 ## Lists from the content matrix: `Content<Type>List`
 
 Every Baack item has a name and a sort order, so a name with sort orders 0,
@@ -50,6 +74,39 @@ import { ContentTextList, ContentText } from '@baack-software/baack-ts-component
 - There is one per type: `ContentTextList`, `ContentMarkdownList`,
   `ContentMoneyList`, `ContentLongList`, `ContentDoubleList`,
   `ContentDateList`, `ContentLinkList`, `ContentImageList`.
+- Each direct child of the container is one entry and moves as a whole when
+  reordered: keep everything that belongs to an entry, such as a separator,
+  inside it.
+- `children` gets the entry's index too, for example for a schema.org
+  `position` (index + 1).
+
+### Example: breadcrumbs from link items, with shadcn/ui
+
+Breadcrumbs are a list of links: `link` items named `breadcrumb` at sort
+orders 0, 1, 2. The site's UI library supplies the markup; pass-through
+attributes add the `BreadcrumbList` microdata. No breadcrumbs component is
+needed:
+
+```tsx
+<Breadcrumb>
+  <ContentLinkList name="breadcrumb" items={view.raw.links} as={BreadcrumbList}
+      itemScope itemType="https://schema.org/BreadcrumbList">
+    {(content, index) => (
+      <BreadcrumbItem className="group" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+        <ChevronRight aria-hidden="true" className="size-3.5 group-first:hidden" />
+        <BreadcrumbLink asChild>
+          <ContentLink content={content} placeholder="Home" itemProp="item" textItemProp="name"
+              aria-current={content.item?.href === path ? 'page' : undefined} />
+        </BreadcrumbLink>
+        <meta itemProp="position" content={String(index + 1)} />
+      </BreadcrumbItem>
+    )}
+  </ContentLinkList>
+</Breadcrumb>
+```
+
+The separator sits inside each entry and is hidden on the first by CSS, and
+the current page is found by its href, so both stay right after a reorder.
 
 ### Page sections that editors can reorder
 
@@ -86,36 +143,12 @@ cell still appears, and the editor moves a row's cells together.
 </ContentRows>
 ```
 
-## Prices with phases: `ContentPriceSpecification`
-
-An introductory offer, then a standard price. Each phase is a schema.org
-`UnitPriceSpecification` inside the Offer, holding its own money item
-(rendered with `offer`, so `price` and `priceCurrency` belong to the phase)
-and a note. The billing terms come from your items, such as a long item for
-the months the offer lasts:
-
-```tsx
-<div itemProp="offers" itemScope itemType="https://schema.org/Offer">
-  <ContentPriceSpecification durationMonths={months.item?.value}>
-    <ContentMoney content={intro} offer placeholder="Contact us" />
-    <ContentText content={introNote} placeholder="for your first 6 months" />
-  </ContentPriceSpecification>
-  <ContentPriceSpecification unitCode="MON" billingStart={months.item?.value}>
-    <ContentMoney content={standard} offer placeholder="Contact us" />
-    <ContentText content={standardNote} placeholder="/ per month after that" />
-  </ContentPriceSpecification>
-</div>
-```
-
-The phases can share item names at sort orders 0 and 1. The wrapper is not
-an item, so the editor edits the money and text inside it as usual.
-
 ## Single items
 
 `ContentText`, `ContentTextBlock`, `ContentMeta`, `ContentMarkdown`,
 `ContentTemplate`, `ContentMoney`, `ContentLong`, `ContentDouble`,
 `ContentDate`, `ContentBoolean`, `ContentLatLong`, `ContentLink` and
-`ContentImage`. Each takes a `content` ref (`{name, sortOrder, item}`) and a
-`placeholder` shown until the item exists. See `docs/components.md` for each
+`ContentImage`. Each takes a `content` ref (`{name, sortOrder, item}`), a
+`placeholder` shown until the item exists, and the pass-through attributes. See `docs/components.md` for each
 component's markup, the attributes they write, and how text, money and dates
 are handled.
