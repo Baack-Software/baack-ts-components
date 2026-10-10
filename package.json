@@ -11,7 +11,8 @@
     "./components": "./dist/core/components.js",
     "./format": "./dist/core/format.js",
     "./vnode": "./dist/core/vnode.js",
-    "./react": "./dist/react/index.js"
+    "./react": "./dist/react/index.js",
+    "./live": "./dist/core/live.js"
   },
   "files": [
     "dist"

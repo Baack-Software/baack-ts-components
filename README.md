@@ -26,6 +26,7 @@ the core.
 | `@baack-software/baack-ts-components/components` | Framework-free renderers (the editor's write-back) |
 | `@baack-software/baack-ts-components/format` | Formatting: text, links, money, dates, numbers |
 | `@baack-software/baack-ts-components/vnode` | The neutral element tree, a DOM builder and `patch` |
+| `@baack-software/baack-ts-components/live` | Following the editor for content rendered in the browser |
 
 The contract the editor relies on is documented in `baack-ts-editor`
 (`docs/components.md`).
@@ -149,6 +150,23 @@ cell still appears, and the editor moves a row's cells together.
   )}
 </ContentRows>
 ```
+
+## Content rendered in the browser: `useLiveEntity`
+
+A hydrated island or a client-rendered app owns its DOM, so the editor does
+not change it. Mark the content with `data-content-live` and render from
+`useLiveEntity`, which returns the entity as the editor shows it while
+editing, and the entity as given otherwise:
+
+```tsx
+const live = useLiveEntity(entity);
+<div data-content-live>
+  <ContentText content={{ name: 'hero_title', sortOrder: 0, item: live.texts?.find((t) => t.name === 'hero_title') }} placeholder="Title" />
+</div>
+```
+
+`@baack-software/baack-ts-components/live` has the framework-free store
+(`followEntity`) for other frameworks.
 
 ## Single items
 

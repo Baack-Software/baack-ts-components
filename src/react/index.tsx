@@ -1,8 +1,9 @@
 // React versions of the canonical content components. Each is a thin wrapper:
 // the rendering lives in components/core, shared with the editor.
 
-import { createElement, Fragment, type ElementType, type ReactNode } from 'react';
+import { createElement, Fragment, useEffect, useState, type ElementType, type ReactNode } from 'react';
 import type {
+  Entity,
   BooleanItem,
   DateTimeItem,
   DoubleItem,
@@ -18,6 +19,7 @@ import type {
 import * as spec from '../core/components.ts';
 import type { ContentRef, ContentType } from '../core/components.ts';
 import type { VNode } from '../core/vnode.ts';
+import { followEntity } from '../core/live.ts';
 
 export type { ContentRef } from '../core/components.ts';
 
@@ -244,3 +246,24 @@ export function ContentSection(props: Props<TextItem, spec.SectionProps> & { chi
 }
 
 export { listRefs, rowSortOrders } from '../core/components.ts';
+
+// ---------------------------------------------------------------------------
+// Content rendered in the browser
+// ---------------------------------------------------------------------------
+
+/**
+ * The entity as the Baack editor shows it, for content rendered in the
+ * browser: drafts, saved values and previews while editing, then the
+ * entity as given again. Render from the result, and mark an element around
+ * this content with `data-content-live` (`LIVE_ATTRIBUTE`) so the editor
+ * sends its changes here instead of changing the DOM React owns. Before
+ * hydration, and without the editor, it returns `entity` unchanged.
+ */
+export function useLiveEntity<E extends Entity>(entity: E): E {
+  const [state, setState] = useState({ source: entity, live: entity });
+  useEffect(() => followEntity(entity, (live) => setState({ source: entity, live })), [entity]);
+  // A new entity from the page replaces anything shown for the old one.
+  return state.source === entity ? state.live : entity;
+}
+
+export { LIVE_ATTRIBUTE } from '../core/live.ts';
