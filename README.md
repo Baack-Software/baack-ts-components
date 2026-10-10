@@ -11,7 +11,14 @@ rendering lives in a framework-free core, so other frameworks can follow.
 (cd ../baack-ts-client && npm install && npm run build)   # linked with file: for now
 npm install
 npm run build
+npm test      # build, then the contract check (test/contract.test.ts)
 ```
+
+The contract check renders every component as the editor's write-back
+does (read the props back from the element, re-render, patch in place) and
+requires the result to equal the component's own render, so a prop that is
+not written to the element fails it. It also compares the React output with
+the core.
 
 | Import | What it is |
 | --- | --- |

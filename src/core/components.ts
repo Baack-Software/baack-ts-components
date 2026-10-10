@@ -318,8 +318,10 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
   ownsChildren: true,
   render(ref, props) {
     const item = ref.item;
+    // Kept on the element in both states, so a placeholder re-renders with its microdata once it has an amount.
+    const recorded = { 'data-money-offer': props.offer ? '' : undefined, 'data-money-item-prop': props.offer ? undefined : props.itemProp };
     if (!item) {
-      return h('span', { ...passThrough(props.attributes), class: props.className, ...contentAttributes('money', ref, true) }, props.placeholder);
+      return h('span', { ...passThrough(props.attributes), class: props.className, ...contentAttributes('money', ref, true), ...recorded }, props.placeholder);
     }
     const amount = moneyAmount(item);
     return h(
@@ -332,6 +334,7 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
         ...contentAttributes('money', ref, false),
         'data-money-currency': item.currencyCode,
         'data-money-unit-value': String(item.unitValue),
+        ...recorded,
       },
       h(
         'span',
@@ -341,10 +344,12 @@ export const money: ComponentSpec<MoneyItem, MoneyProps> = {
       amount,
     );
   },
-  propsFrom: (element) => {
-    const offer = element.getAttribute('itemprop') === 'price';
-    return { className: element.getAttribute('class') ?? undefined, itemProp: offer ? undefined : element.getAttribute('itemprop') ?? undefined, offer, placeholder: '' };
-  },
+  propsFrom: (element) => ({
+    className: element.getAttribute('class') ?? undefined,
+    itemProp: element.getAttribute('data-money-item-prop') ?? undefined,
+    offer: element.hasAttribute('data-money-offer'),
+    placeholder: '',
+  }),
 };
 
 // ---------------------------------------------------------------------------
@@ -574,7 +579,16 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
   ownsChildren: true,
   render(ref, props) {
     const item = ref.item;
-    const attrs = { ...passThrough(props.attributes), class: props.className, ...contentAttributes('image', ref, !item?.src) };
+    const attrs = {
+      ...passThrough(props.attributes),
+      class: props.className,
+      ...contentAttributes('image', ref, !item?.src),
+      // The image's props, kept on the picture: an empty picture has no img to read them from.
+      'data-image-priority': props.priority ? '' : undefined,
+      'data-image-alt': props.placeholderAlt,
+      'data-image-item-prop': props.itemProp,
+      'data-image-img-class': props.imgClassName,
+    };
     if (!item?.src) return h('picture', attrs);
     return h(
       'picture',
@@ -592,16 +606,13 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
       }),
     );
   },
-  propsFrom: (element) => {
-    const img = element.querySelector('img');
-    return {
-      className: element.getAttribute('class') ?? undefined,
-      priority: img?.getAttribute('loading') === 'eager',
-      itemProp: img?.getAttribute('itemprop') ?? undefined,
-      imgClassName: img?.getAttribute('class') ?? undefined,
-      placeholderAlt: '',
-    };
-  },
+  propsFrom: (element) => ({
+    className: element.getAttribute('class') ?? undefined,
+    priority: element.hasAttribute('data-image-priority'),
+    itemProp: element.getAttribute('data-image-item-prop') ?? undefined,
+    imgClassName: element.getAttribute('data-image-img-class') ?? undefined,
+    placeholderAlt: element.getAttribute('data-image-alt') ?? undefined,
+  }),
 };
 
 // ---------------------------------------------------------------------------
