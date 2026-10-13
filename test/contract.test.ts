@@ -320,6 +320,38 @@ describe('lists and rows', () => {
     );
   });
 
+  test('keyed groups follow the order list, then keys not listed yet at free sort orders', () => {
+    const order = [
+      { ...textA, urn: 'o1', name: 'services', sortOrder: 4, value: 'training' },
+      { ...textA, urn: 'o2', name: 'services', sortOrder: 1, value: 'design' },
+      // Unknown to the site (renamed in code): skipped.
+      { ...textA, urn: 'o3', name: 'services', sortOrder: 2, value: 'retired' },
+      // Listed twice: placed by the lower sort order.
+      { ...textA, urn: 'o4', name: 'services', sortOrder: 7, value: 'design' },
+      { ...textA, urn: 'o5', name: 'other', sortOrder: 0, value: 'onboarding' },
+    ];
+    const refs = spec.orderedRefs(order, 'services', ['design', 'onboarding', 'training', 'audit']);
+    assert.deepEqual(
+      refs.map((r) => [r.key, r.content.sortOrder, r.content.item?.urn]),
+      [
+        ['design', 1, 'o2'],
+        ['training', 4, 'o1'],
+        ['onboarding', 8, undefined],
+        ['audit', 9, undefined],
+      ],
+    );
+  });
+
+  test('with no order list yet, keyed groups keep the site order at sort orders 0 to n - 1', () => {
+    assert.deepEqual(
+      spec.orderedRefs([], 'services', ['design', 'onboarding']).map((r) => [r.key, r.content.sortOrder, r.content.item]),
+      [
+        ['design', 0, undefined],
+        ['onboarding', 1, undefined],
+      ],
+    );
+  });
+
   test('rows are every sort order used by a column, each marked', () => {
     const cells = [
       { name: 'plan', sortOrder: 0 },

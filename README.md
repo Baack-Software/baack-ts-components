@@ -134,6 +134,25 @@ names a section, and `ContentSection` wraps that section's content.
 Editors can then reorder whole sections from the editor and see the page
 change as they do.
 
+### Cards and other groups the site knows by key
+
+When the site's code knows its groups (cards whose items are named
+`service_<key>_title`, `_body`, and so on), `orderedRefs` puts them in the
+order the content gives. It returns every key the site knows: those in the
+order list by sort order, then those not listed yet, as placeholders the
+editor creates on the first move. A section can be any element, so a card
+is a section rendered as the site's card.
+
+```tsx
+<div {...listAttributes('text', 'services')} className="grid">
+  {orderedRefs(view.raw.texts ?? [], 'services', ['design', 'onboarding', 'training']).map(({ key, content }) => (
+    <ContentSection key={key} content={content} placeholder={key} as="article" className="card">
+      {renderCard(key)}
+    </ContentSection>
+  ))}
+</div>
+```
+
 ### Tables: `ContentRows`
 
 A table row is the column items that share one sort order. `ContentRows`

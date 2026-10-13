@@ -245,7 +245,7 @@ export function ContentSection(props: Props<TextItem, spec.SectionProps> & { chi
   return render(spec.section, props, props.children);
 }
 
-export { listRefs, rowSortOrders } from '../core/components.ts';
+export { listAttributes, listRefs, orderedRefs, rowSortOrders } from '../core/components.ts';
 
 // ---------------------------------------------------------------------------
 // Content rendered in the browser

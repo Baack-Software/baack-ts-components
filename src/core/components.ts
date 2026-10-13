@@ -636,6 +636,34 @@ export function listRefs<T extends { name: string; sortOrder: number }>(items: r
 }
 
 /**
+ * Keyed groups (cards, sections) in the order a text list gives: each item of
+ * `name` holds a key, and its sort order places that group. Returns each key
+ * the site knows (`keys`, in the site's own order) with the ref to render its
+ * `ContentSection` from: listed keys by sort order first, then keys not listed
+ * yet as placeholders at free sort orders after them, where the editor can
+ * create their items. A listed key the site does not know is skipped, and a
+ * key listed twice is placed by its lowest sort order.
+ */
+export function orderedRefs<T extends { name: string; sortOrder: number; value: string }>(
+  items: readonly T[],
+  name: string,
+  keys: readonly string[],
+): { key: string; content: ContentRef<T> }[] {
+  const known = new Set(keys);
+  const named = items.filter((item) => item.name === name).sort((a, b) => a.sortOrder - b.sortOrder);
+  const listed = new Map<string, T>();
+  for (const item of named) {
+    const key = item.value.trim();
+    if (known.has(key) && !listed.has(key)) listed.set(key, item);
+  }
+  let next = named.length > 0 ? named[named.length - 1]!.sortOrder + 1 : 0;
+  return [
+    ...[...listed].map(([key, item]) => ({ key, content: { name, sortOrder: item.sortOrder, item } })),
+    ...keys.filter((key) => !listed.has(key)).map((key) => ({ key, content: { name, sortOrder: next++ } })),
+  ];
+}
+
+/**
  * The sort orders of a table's rows: every sort order used by any of its
  * column names, so a row with an empty cell still appears.
  */
