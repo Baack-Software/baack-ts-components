@@ -3,6 +3,21 @@
   "version": "0.0.1",
   "description": "Content components that render Baack items so the Baack editor can edit them in place",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Baack-Software/baack-ts-components.git"
+  },
+  "homepage": "https://github.com/Baack-Software/baack-ts-components#readme",
+  "bugs": {
+    "url": "https://github.com/Baack-Software/baack-ts-components/issues"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22.18.0",
+      "onFail": "warn"
+    }
+  },
   "type": "module",
   "main": "dist/core/components.js",
   "types": "dist/core/components.d.ts",
@@ -11,7 +26,8 @@
     "./components": "./dist/core/components.js",
     "./format": "./dist/core/format.js",
     "./vnode": "./dist/core/vnode.js",
-    "./react": "./dist/react/index.js"
+    "./react": "./dist/react/index.js",
+    "./live": "./dist/core/live.js"
   },
   "files": [
     "dist"
@@ -19,10 +35,15 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test 'test/*.test.ts'",
+    "prepublishOnly": "npm test"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "@baack-software/baack-ts-client": "file:../baack-ts-client"
+    "@baack-software/baack-ts-client": "^0.0.2"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -33,8 +54,12 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "happy-dom": "^20.14.6",
     "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "typescript": "^7.0.2"
   }
 }
