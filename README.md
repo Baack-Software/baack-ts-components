@@ -1,16 +1,24 @@
 # Baack content components
 
 Components that render [Baack](https://www.baack.co) content items on a page,
-in a way the Baack editor can edit in place. Depends on `baack-ts-client`;
+in a way the Baack editor can edit in place. Built on
+[`@baack-software/baack-ts-client`](https://www.npmjs.com/package/@baack-software/baack-ts-client);
 the editor (`baack-ts-editor`) depends on this package. React today; the
 rendering lives in a framework-free core, so other frameworks can follow.
 
 ## Getting started
 
 ```sh
-(cd ../baack-ts-client && npm install && npm run build)   # linked with file: for now
+npm install @baack-software/baack-ts-components @baack-software/baack-ts-client
+```
+
+The client reads an entity and gives the `EntityView` the components render
+from; React (18 or later) is needed only for `/react`.
+
+To work on the components:
+
+```sh
 npm install
-npm run build
 npm test      # build, then the contract check (test/contract.test.ts)
 ```
 

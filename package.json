@@ -43,7 +43,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@baack-software/baack-ts-client": "file:../baack-ts-client"
+    "@baack-software/baack-ts-client": "^0.0.2"
   },
   "peerDependencies": {
     "react": ">=18"
