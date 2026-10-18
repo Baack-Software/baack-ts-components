@@ -5,7 +5,7 @@ import type { MoneyItem } from '@baack-software/baack-ts-client';
 /**
  * The structure of a plain text value: paragraphs separated by blank lines,
  * each a list of lines. Nothing is interpreted: markup and entities stay as
- * typed and are shown as text (open question 40).
+ * typed and are shown as text.
  */
 export function textParagraphs(value: string): string[][] {
   return value

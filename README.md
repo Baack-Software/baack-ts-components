@@ -28,8 +28,9 @@ the core.
 | `@baack-software/baack-ts-components/vnode` | The neutral element tree, a DOM builder and `patch` |
 | `@baack-software/baack-ts-components/live` | Following the editor for content rendered in the browser |
 
-The contract the editor relies on is documented in `baack-ts-editor`
-(`docs/components.md`).
+[`docs/components.md`](docs/components.md) covers each item type's usage,
+naming, lists and keyed groups (with an FAQ example), and the contract the
+editor relies on.
 
 ## Principles: bridging components, scoped to the API
 
@@ -193,6 +194,10 @@ const live = useLiveEntity(entity);
 `ContentTemplate`, `ContentMoney`, `ContentLong`, `ContentDouble`,
 `ContentDate`, `ContentBoolean`, `ContentLatLong`, `ContentLink` and
 `ContentImage`. Each takes a `content` ref (`{name, sortOrder, item}`), a
-`placeholder` shown until the item exists, and the pass-through attributes. See `docs/components.md` for each
-component's markup, the attributes they write, and how text, money and dates
-are handled.
+`placeholder` shown until the item exists, and the pass-through attributes.
+[`docs/components.md`](docs/components.md) has examples for each, the
+markup and attributes it writes, and how text, money and dates are handled.
+
+## License
+
+Apache-2.0; see `LICENSE`.

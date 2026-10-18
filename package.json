@@ -3,6 +3,21 @@
   "version": "0.0.1",
   "description": "Content components that render Baack items so the Baack editor can edit them in place",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Baack-Software/baack-ts-components.git"
+  },
+  "homepage": "https://github.com/Baack-Software/baack-ts-components#readme",
+  "bugs": {
+    "url": "https://github.com/Baack-Software/baack-ts-components/issues"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22.18.0",
+      "onFail": "warn"
+    }
+  },
   "type": "module",
   "main": "dist/core/components.js",
   "types": "dist/core/components.d.ts",
@@ -21,7 +36,11 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && tsc -p tsconfig.test.json && node --test 'test/*.test.ts'"
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test 'test/*.test.ts'",
+    "prepublishOnly": "npm test"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@baack-software/baack-ts-client": "file:../baack-ts-client"
