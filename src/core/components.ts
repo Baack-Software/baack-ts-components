@@ -81,7 +81,7 @@ export interface ComponentSpec<I, P> {
 export type PassThrough = Readonly<Record<string, string | undefined>>;
 
 const PASS_THROUGH_NAMES = new Set(['id', 'role', 'title', 'lang', 'dir', 'tabindex', 'itemscope', 'itemtype', 'itemid', 'itemref']);
-const CONTRACT_ATTRIBUTE = /^data-(placeholder|section|content-rows?|[a-z]+-(name|sort-order|urn|list))$/;
+const CONTRACT_ATTRIBUTE = /^data-(placeholder|section|content-rows?|[a-z]+-(name|sort-order|urn|list)|attr-[a-z0-9-]+-(name|sort-order|urn|placeholder))$/;
 
 /** True for an attribute a page may pass through to a component's root. */
 export function isPassThrough(name: string): boolean {
@@ -501,6 +501,122 @@ export const latLong: ComponentSpec<LatLongItem, LatLongProps> = {
   },
   propsFrom: (element) => ({ ...common(element), placeholder: '' }),
 };
+
+// ---------------------------------------------------------------------------
+// Attributes bound to text items
+// ---------------------------------------------------------------------------
+
+/**
+ * A text item shown in an attribute of an element that carries something
+ * else (an `<option>`'s `value`, an input's `placeholder`, an
+ * `aria-label`): `data-attr-<attribute>-name`, `-sort-order`, and `-urn`
+ * for a real item or `-placeholder` without one. The value is one line.
+ */
+export interface AttributeBinding {
+  attribute: string;
+  name: string;
+  sortOrder: number;
+  /** Absent while the item does not exist (the attribute shows its placeholder). */
+  urn?: string | undefined;
+}
+
+const BOUND_NAME = /^data-attr-([a-z0-9-]+)-name$/;
+
+/** The attribute's value and its contract, from a text item or its placeholder. */
+export function bindAttribute(attribute: string, ref: ContentRef<TextItem>, placeholder: string): Record<string, string | undefined> {
+  const value = ref.item ? textLines(ref.item.value).join(' ') : '';
+  const missing = value === '';
+  return {
+    [attribute]: missing ? placeholder : value,
+    [`data-attr-${attribute}-name`]: ref.name,
+    [`data-attr-${attribute}-sort-order`]: String(ref.sortOrder),
+    [`data-attr-${attribute}-urn`]: missing ? undefined : ref.item?.urn,
+    [`data-attr-${attribute}-placeholder`]: missing ? '' : undefined,
+  };
+}
+
+/** The attributes a binding may add or remove, for `volatile`. */
+export function boundVolatile(attribute: string): string[] {
+  return [`data-attr-${attribute}-urn`, `data-attr-${attribute}-placeholder`];
+}
+
+/** Every attribute bound on an element, for the editor to list and write back. */
+export function attributeBindings(element: Element): AttributeBinding[] {
+  const bindings: AttributeBinding[] = [];
+  for (const name of element.getAttributeNames()) {
+    const attribute = BOUND_NAME.exec(name)?.[1];
+    if (!attribute) continue;
+    bindings.push({
+      attribute,
+      name: element.getAttribute(name) ?? '',
+      sortOrder: Number(element.getAttribute(`data-attr-${attribute}-sort-order`) ?? 0),
+      urn: element.getAttribute(`data-attr-${attribute}-urn`) ?? undefined,
+    });
+  }
+  return bindings;
+}
+
+/** The ref and placeholder a bound attribute was rendered from, read back from the element. */
+function boundFrom(element: Element, attribute: string): { ref: ContentRef<TextItem>; placeholder: string } {
+  const name = element.getAttribute(`data-attr-${attribute}-name`) ?? '';
+  const sortOrder = Number(element.getAttribute(`data-attr-${attribute}-sort-order`) ?? 0);
+  const urn = element.getAttribute(`data-attr-${attribute}-urn`);
+  const value = element.getAttribute(attribute) ?? '';
+  if (urn === null) return { ref: { name, sortOrder }, placeholder: value };
+  return { ref: { name, sortOrder, item: { urn, value } as TextItem }, placeholder: '' };
+}
+
+// ---------------------------------------------------------------------------
+// Select options
+// ---------------------------------------------------------------------------
+
+export interface OptionProps extends CommonProps {
+  /** The label while its item does not exist. */
+  placeholder: string;
+  /** The text item holding the option's value, at the label's sort order. */
+  value: ContentRef<TextItem>;
+  /** The value while its item does not exist. */
+  valuePlaceholder: string;
+}
+
+/**
+ * An `<option>` from two text items sharing a sort order: the label as its
+ * text, the value bound to `value`. The option is a row of its select, so
+ * the editor moves, adds and removes label and value together.
+ */
+export const option: ComponentSpec<TextItem, OptionProps> = {
+  type: 'text',
+  volatile: [...volatileFor('text'), ...boundVolatile('value')],
+  ownsChildren: true,
+  render(ref, props) {
+    const label = ref.item ? textLines(ref.item.value).join(' ') : '';
+    const placeholder = label === '';
+    return h(
+      'option',
+      {
+        ...passThrough(props.attributes),
+        class: props.className,
+        ...rowAttributes(ref.sortOrder),
+        ...contentAttributes('text', ref, placeholder),
+        ...bindAttribute('value', props.value, props.valuePlaceholder),
+      },
+      placeholder ? props.placeholder : label,
+    );
+  },
+  propsFrom: (element) => {
+    const value = boundFrom(element, 'value');
+    return { ...common(element), placeholder: '', value: value.ref, valuePlaceholder: value.placeholder };
+  },
+};
+
+/** A select's options: every sort order used by its label or value names, placeholders while there are none. */
+export function optionSortOrders(
+  labels: { name: string; items: readonly TextItem[] },
+  values: { name: string; items: readonly TextItem[] },
+  fallback: number,
+): number[] {
+  return rowSortOrders([...labels.items, ...values.items], [labels.name, values.name], fallback);
+}
 
 // ---------------------------------------------------------------------------
 // Links
