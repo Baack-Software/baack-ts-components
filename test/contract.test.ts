@@ -204,6 +204,19 @@ const cases: Case<any, any>[] = [
     props: [{}, { className: 'hero', imgClassName: 'cover', priority: true, itemProp: 'image', placeholderAlt: 'Decorative', ...pass }],
   },
   {
+    name: 'option',
+    spec: spec.option,
+    react: react.ContentOption,
+    items: [
+      { ...ts('o1'), value: 'Français' },
+      { ...ts('o2'), value: 'Deutsch' },
+    ],
+    props: [
+      { placeholder: 'English', value: { name: 'hero_value', sortOrder: 2 }, valuePlaceholder: 'en-GB' },
+      { placeholder: 'P', value: { name: 'hero_value', sortOrder: 2, item: { ...ts('v1'), value: 'fr-FR' } }, valuePlaceholder: '', className: 'opt', ...pass },
+    ],
+  },
+  {
     name: 'section',
     spec: spec.section,
     react: react.ContentSection,
@@ -368,5 +381,76 @@ describe('lists and rows', () => {
       [...body.querySelectorAll(`[${spec.ROW_ATTRIBUTE}]`)].map((row) => row.getAttribute(spec.ROW_ATTRIBUTE)),
       ['0', '3'],
     );
+  });
+});
+
+describe('select', () => {
+  const labels = { name: 'locale_option', items: [{ ...textA, urn: 'l0', name: 'locale_option', sortOrder: 0, value: 'Français' }, { ...textA, urn: 'l3', name: 'locale_option', sortOrder: 3, value: 'Deutsch' }] };
+  const values = { name: 'locale_option_value', items: [{ ...textA, urn: 'v0', name: 'locale_option_value', sortOrder: 0, value: 'fr-FR' }] };
+  const placeholderOptions = [
+    { label: 'English', value: 'en-GB' },
+    { label: 'French', value: 'fr' },
+  ];
+  const select = (overrides: object = {}) =>
+    parse(
+      renderToStaticMarkup(
+        createElement(react.ContentSelect, {
+          content: { name: 'locale_label', sortOrder: 0 },
+          placeholder: 'Language',
+          labels,
+          values,
+          placeholderOptions,
+          ...overrides,
+        } as never),
+      ),
+    );
+
+  test('pairs labels and values by sort order, each option a row', () => {
+    const element = select({ id: 'locale', select: { name: 'locale', defaultValue: 'fr-FR' } });
+    const control = element.querySelector('select')!;
+    assert.equal(control.getAttribute(spec.ROWS_ATTRIBUTE), '');
+    assert.equal(control.getAttribute('id'), 'locale');
+    assert.equal(control.getAttribute('name'), 'locale');
+    const options = [...control.querySelectorAll('option')].map((o) => [o.getAttribute(spec.ROW_ATTRIBUTE), o.textContent, o.getAttribute('value'), o.getAttribute('data-attr-value-urn')]);
+    // Sort order 3 has a label but no value yet: its value is a placeholder.
+    assert.deepEqual(options, [
+      ['0', 'Français', 'fr-FR', 'v0'],
+      ['3', 'Deutsch', '', null],
+    ]);
+    assert.equal(element.querySelector('span')!.getAttribute('data-text-name'), 'locale_label');
+  });
+
+  test('with no items, the page options show as placeholders at sort orders 0 to n - 1', () => {
+    const control = select({ labels: { name: 'locale_option', items: [] }, values: { name: 'locale_option_value', items: [] } }).querySelector('select')!;
+    const options = [...control.querySelectorAll('option')];
+    assert.deepEqual(
+      options.map((o) => [o.getAttribute('data-text-sort-order'), o.textContent, o.getAttribute('value')]),
+      [
+        ['0', 'English', 'en-GB'],
+        ['1', 'French', 'fr'],
+      ],
+    );
+    for (const o of options) {
+      assert.equal(o.getAttribute('data-placeholder'), '');
+      assert.equal(o.getAttribute('data-attr-value-placeholder'), '');
+    }
+  });
+
+  test('the bound value is listed for the editor, and cannot be forged by a page', () => {
+    const element = toDom(
+      spec.option.render(
+        { name: 'locale_option', sortOrder: 1, item: { ...textA, urn: 'l1', value: 'Deutsch' } as never },
+        { placeholder: '', value: { name: 'locale_option_value', sortOrder: 1, item: { ...textA, urn: 'v1', value: 'de-DE' } as never }, valuePlaceholder: '', attributes: { 'data-attr-value-urn': 'forged', 'data-attr-value-name': 'other' } },
+      ),
+      document,
+    ) as Element;
+    assert.deepEqual(spec.attributeBindings(element), [{ attribute: 'value', name: 'locale_option_value', sortOrder: 1, urn: 'v1' }]);
+    assert.equal(spec.isPassThrough('data-attr-placeholder-urn'), false);
+  });
+
+  test('a bound attribute is one line', () => {
+    const attrs = spec.bindAttribute('placeholder', { name: 'search_placeholder', sortOrder: 0, item: { ...textA, urn: 's', value: 'Search\nthe docs' } as never }, '');
+    assert.equal(attrs['placeholder'], 'Search the docs');
+    assert.equal(attrs['data-attr-placeholder-urn'], 's');
   });
 });

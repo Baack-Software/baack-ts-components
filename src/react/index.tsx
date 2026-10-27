@@ -1,7 +1,7 @@
 // React versions of the canonical content components. Each is a thin wrapper:
 // the rendering lives in components/core, shared with the editor.
 
-import { createElement, Fragment, useEffect, useState, type ElementType, type ReactNode } from 'react';
+import { createElement, Fragment, useEffect, useState, type ComponentProps, type ElementType, type ReactNode } from 'react';
 import type {
   Entity,
   BooleanItem,
@@ -236,6 +236,69 @@ export function ContentRows(props: ContentRowsProps & PassThroughProps) {
     { ...reactPassThrough(props), className: props.className, [spec.ROWS_ATTRIBUTE]: '' },
     ...props.rows.map((sortOrder, index) =>
       createElement(props.rowAs ?? 'tr', { key: sortOrder, ...spec.rowAttributes(sortOrder) }, props.children(sortOrder, index)),
+    ),
+  );
+}
+
+/** One `<option>`: its label item as text, its value item in `value`. Usually rendered by `ContentSelect`. */
+export function ContentOption(props: Props<TextItem, spec.OptionProps>) {
+  return render(spec.option, props);
+}
+
+/** The items of one name, as the entity view gives them: `{ name, items: view.texts(name) }`. */
+export interface ContentNamed {
+  name: string;
+  items: readonly TextItem[];
+}
+
+export interface ContentSelectProps {
+  /** The select's label, a text item. */
+  content: ContentRef<TextItem>;
+  /** The label while its item does not exist. */
+  placeholder: string;
+  /** The options' labels: one text item per option. */
+  labels: ContentNamed;
+  /** The options' values: one text item per option, at its label's sort order. */
+  values: ContentNamed;
+  /** The page's options, by sort order, shown while their items do not exist. */
+  placeholderOptions: readonly { label: string; value: string }[];
+  /** The site's own `<select>` attributes: `name`, `value` or `defaultValue`, `onChange`, `disabled`. */
+  select?: Omit<ComponentProps<'select'>, 'children' | 'className'>;
+  /** Classes for the `<label>` that holds the label and the select. */
+  className?: string;
+  labelClassName?: string;
+  selectClassName?: string;
+  optionClassName?: string;
+}
+
+/**
+ * A `<select>` from three names: its label, and its options' labels and
+ * values, paired by sort order. Each option is a row, so label and value
+ * move together. Pass-through attributes go to the `<select>`.
+ */
+export function ContentSelect(props: ContentSelectProps & PassThroughProps) {
+  const orders = spec.optionSortOrders(props.labels, props.values, props.placeholderOptions.length);
+  const find = (named: ContentNamed, sortOrder: number) => named.items.find((item) => item.name === named.name && item.sortOrder === sortOrder);
+  return createElement(
+    'label',
+    { className: props.className },
+    render(spec.text, { content: props.content, placeholder: props.placeholder, className: props.labelClassName }),
+    createElement(
+      'select',
+      { ...props.select, ...reactPassThrough(props), className: props.selectClassName, [spec.ROWS_ATTRIBUTE]: '' },
+      ...orders.map((sortOrder) =>
+        createElement(
+          Fragment,
+          { key: sortOrder },
+          render(spec.option, {
+            content: { name: props.labels.name, sortOrder, item: find(props.labels, sortOrder) },
+            placeholder: props.placeholderOptions[sortOrder]?.label ?? '',
+            value: { name: props.values.name, sortOrder, item: find(props.values, sortOrder) },
+            valuePlaceholder: props.placeholderOptions[sortOrder]?.value ?? '',
+            className: props.optionClassName,
+          }),
+        ),
+      ),
     ),
   );
 }

@@ -128,6 +128,7 @@ page's own items.
 | `Content<Type>List` | any | container (`ul`, or a component) | Every item of a name in sort order, each rendered by a child template given the ref and its index; `fallback` placeholder entries while empty. Writes `data-<type>-list`. |
 | `ContentRows` | (several) | `tbody` of `tr` (or components) | A table row per sort order across its column names; writes `data-content-rows` and `data-content-row`. |
 | `ContentSection` | text | `section` (or `as`) | A page section, or a card, ordered by a text item naming its key; the value goes in `data-section` and the content is the page's. |
+| `ContentSelect` | text (three names) | `label` holding a `span` and a `select` | The select's label, and its options' labels and values paired by sort order. Each `option` is a row (`ContentOption`): the label as its text, the value bound to `value`. |
 
 JSON and reference items have no component: they drive logic, not display.
 
@@ -336,6 +337,46 @@ from the editor, even though two sections are rarely on screen together.
 Here the content decides which sections exist, so `renderSection` must
 handle a name it does not know.
 
+### Selects
+
+A `<select>` is three names: its label, and two names whose items pair up
+by sort order, the options' labels and their values. Both are content, so
+a reorder, an insert or a removal moves a label and its value together,
+and they cannot drift apart as a fixed list of values in code would.
+
+```tsx
+<ContentSelect
+  content={ref(view.text('locale_label'), 'locale_label')} placeholder="Language"
+  labels={{ name: 'locale_option', items: view.texts('locale_option') }}
+  values={{ name: 'locale_option_value', items: view.texts('locale_option_value') }}
+  placeholderOptions={[{ label: 'English', value: 'en-GB' }, { label: 'Français', value: 'fr-FR' }]}
+  select={{ name: 'locale', defaultValue: 'en-GB', onChange }}
+  className="grid gap-1" labelClassName="text-sm" selectClassName="rounded border"
+/>
+```
+
+```html
+<label class="grid gap-1">
+  <span data-text-name="locale_label" data-text-sort-order="0" data-placeholder="">Language</span>
+  <select name="locale" data-content-rows="">
+    <option data-content-row="0" value="fr-FR"
+            data-text-name="locale_option" data-text-sort-order="0" data-text-urn="…"
+            data-attr-value-name="locale_option_value" data-attr-value-sort-order="0" data-attr-value-urn="…">Français</option>
+  </select>
+</label>
+```
+
+The options are every sort order either name uses; while neither has
+items, `placeholderOptions` show at sort orders 0 to n - 1. Pass-through
+attributes go to the `<select>`, the site's own select attributes
+(`name`, `value`, `onChange`, `disabled`) in `select`. `labelClassName="sr-only"`
+hides the label but keeps it for screen readers. A value an editor changes
+is a value the page's code receives: editors are trusted to know that.
+
+The editor does not read bound attributes yet: it edits the labels in
+place, and the values only once it lists bound attributes (planned with
+its edit control for content that is not visible).
+
 ### Content the site knows by key
 
 Most often the site's code knows its groups: service cards, plans, FAQ
@@ -496,7 +537,8 @@ The DOM contract (`data-<type>-name`, `-sort-order`, `-urn`) plus:
 | `data-image-priority`, `data-image-alt`, `data-image-item-prop`, `data-image-img-class` | Image props, kept on the `<picture>`: an empty one has no `<img>` to read them from, and the fallback alt is otherwise lost. |
 | `data-<type>-list` | A list container: every item of that name, in sort order. |
 | `data-section` | A section's key, the value of its order item. |
-| `data-content-rows`, `data-content-row` | A table body and each row's sort order. |
+| `data-content-rows`, `data-content-row` | A table body (or a `select`) and each row's sort order. |
+| `data-attr-<attribute>-name`, `-sort-order`, `-urn`, `-placeholder` | A text item shown in that attribute of the element (an option's `value`); `-placeholder` while it does not exist. An element can carry its own item and bound attributes together. |
 
 **Rule:** any prop that changes how a value renders must be written to the
 element, so the editor can read it back with `propsFrom` and re-render
@@ -525,7 +567,8 @@ They do not change how the value renders, so `propsFrom` does not read them:
 list, so they stay on the element through a write-back. Anything outside the
 list (event handlers, `style`, `href`) and the contract's own attributes
 (`data-<type>-name`, `-sort-order`, `-urn`, `-list`, `data-placeholder`,
-`data-section`, `data-content-row(s)`) are dropped.
+`data-section`, `data-content-row(s)`, `data-attr-*-name`, `-sort-order`,
+`-urn`, `-placeholder`) are dropped.
 
 ## Text is escaped
 
