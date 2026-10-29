@@ -1,7 +1,8 @@
 # Baack content components
 
-Components that render [Baack](https://www.baack.co) content items on a page,
-in a way the Baack editor can edit in place. Built on
+Components that render [Baack](https://www.baack.co)
+[content items](https://www.baack.co/docs/reference/content-items) on a page, in a way the Baack
+editor can [edit in place](https://www.baack.co/docs/guides/edit-content-on-the-page). Built on
 [`@baack-software/baack-ts-client`](https://www.npmjs.com/package/@baack-software/baack-ts-client);
 the editor (`baack-ts-editor`) depends on this package. React today; the
 rendering lives in a framework-free core, so other frameworks can follow.
@@ -12,8 +13,10 @@ rendering lives in a framework-free core, so other frameworks can follow.
 npm install @baack-software/baack-ts-components @baack-software/baack-ts-client
 ```
 
-The client reads an entity and gives the `EntityView` the components render
-from; React (18 or later) is needed only for `/react`.
+The client reads an [entity](https://www.baack.co/docs/concepts/content-entities) and gives the
+`EntityView` the components render from; React (18 or later) is needed only
+for `/react`. [Getting started with Baack APIs](https://www.baack.co/docs/guides/getting-started)
+covers API keys and a first call.
 
 To work on the components:
 
@@ -43,7 +46,9 @@ editor relies on.
 ## Principles: bridging components, scoped to the API
 
 These components are the bridge between a site's markup and Baack content,
-for site developers and for agents (the onboarding skill) converting a page.
+for site developers and for agents (the onboarding skill) converting a page
+([From content in code to Baack](https://www.baack.co/docs/guides/from-content-in-code) walks
+through the conversion).
 They stay small and generic so they fit any site:
 
 - **One component per API concept.** One per item type, plus `Content<Type>List`,
@@ -66,8 +71,9 @@ They stay small and generic so they fit any site:
 
 ## Lists from the content matrix: `Content<Type>List`
 
-Every Baack item has a name and a sort order, so a name with sort orders 0,
-1, 2 is a list. The list components render every item of a name in order,
+Every Baack item has a name and a sort order
+([the content matrix](https://www.baack.co/docs/concepts/content-entities)), so a name with sort
+orders 0, 1, 2 is a list. The list components render every item of a name in order,
 with your own template for each entry:
 
 ```tsx
@@ -205,6 +211,37 @@ const live = useLiveEntity(entity);
 `placeholder` shown until the item exists, and the pass-through attributes.
 [`docs/components.md`](docs/components.md) has examples for each, the
 markup and attributes it writes, and how text, money and dates are handled.
+The [content items reference](https://www.baack.co/docs/reference/content-items) has each item
+type's fields and API: [text](https://www.baack.co/docs/reference/content-items#textitem),
+[markdown](https://www.baack.co/docs/reference/content-items#markdownitem),
+[template](https://www.baack.co/docs/reference/content-items#templateitem),
+[money](https://www.baack.co/docs/reference/content-items#moneyitem),
+[long](https://www.baack.co/docs/reference/content-items#longitem),
+[double](https://www.baack.co/docs/reference/content-items#doubleitem),
+[date](https://www.baack.co/docs/reference/content-items#datetimeitem),
+[boolean](https://www.baack.co/docs/reference/content-items#booleanitem),
+[lat/long](https://www.baack.co/docs/reference/content-items#latlongitem),
+[link](https://www.baack.co/docs/reference/content-items#linkitem) and
+[image](https://www.baack.co/docs/reference/content-items#imageitem).
+
+## Baack documentation
+
+- [Content entities and the content matrix](https://www.baack.co/docs/concepts/content-entities):
+  entities, typed items, names and sort orders, and entity lists.
+- [Content modelling without the layout](https://www.baack.co/docs/guides/content-modelling-without-the-layout-best-practices):
+  naming items so content outlives a page design.
+- [Content items reference](https://www.baack.co/docs/reference/content-items) and
+  [entity reference](https://www.baack.co/docs/reference/entity).
+- [Edit content on your page](https://www.baack.co/docs/guides/edit-content-on-the-page): the
+  in-page editor these components work with.
+- [In-page vs visual editing](https://www.baack.co/docs/guides/in-page-vs-visual-editing).
+- [From content in code to Baack](https://www.baack.co/docs/guides/from-content-in-code): moving a
+  site's copy into these components, page by page.
+- [Languages and variants](https://www.baack.co/docs/concepts/languages-variants),
+  [versions](https://www.baack.co/docs/concepts/versions) and
+  [review and publish](https://www.baack.co/docs/guides/review-and-publish).
+- [Getting started with Baack APIs](https://www.baack.co/docs/guides/getting-started) and the
+  [full documentation](https://www.baack.co/docs).
 
 ## License
 
