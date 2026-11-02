@@ -116,6 +116,11 @@ export function ContentText(props: Props<TextItem, spec.TextProps>) {
   return render(spec.text, props);
 }
 
+/** A code sample, verbatim. `children` are the page's highlighted tokens for the same value. */
+export function ContentCode(props: Props<TextItem, spec.CodeProps> & { children?: ReactNode }) {
+  return render(spec.code, props, props.children);
+}
+
 export function ContentTextBlock(props: Props<TextItem, spec.TextBlockProps>) {
   return render(spec.textBlock, props);
 }
@@ -160,8 +165,9 @@ export function ContentLatLong(props: Props<LatLongItem, spec.LatLongProps>) {
   return render(spec.latLong, props);
 }
 
-export function ContentLink(props: Props<LinkItem, spec.LinkProps>) {
-  return render(spec.link, props);
+/** A link; with `children`, it wraps them (an icon, a card) and its item sets only the target. */
+export function ContentLink(props: (Props<LinkItem, spec.LinkProps> & { children?: undefined }) | (Props<LinkItem, spec.LinkWrapperProps> & { children: ReactNode })) {
+  return props.children === undefined ? render(spec.link, props as Props<LinkItem, spec.LinkProps>) : render(spec.linkWrapper, props, props.children);
 }
 
 export function ContentImage(props: Props<ImageItem, spec.ImageProps>) {

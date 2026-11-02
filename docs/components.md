@@ -114,6 +114,7 @@ page's own items.
 | React | Item | Element | Notes |
 | --- | --- | --- | --- |
 | `ContentText` | text | `span` (or `as`) | Lines joined by `<br>`. `linkify` turns URLs and emails into links. Escaped: markup in a value shows as typed. `unsafeLiteral` (discouraged) inserts the value as HTML. |
+| `ContentCode` | text | `code` (or `as`) | A code sample, verbatim: spaces, indentation and line breaks kept. Put it in the page's `<pre>`. Takes the page's highlighted tokens as children; the editor writes back plain text. |
 | `ContentTextBlock` | text | `div` of `p` | Blank lines separate paragraphs. Escaped, with `unsafeLiteral` as for `ContentText`. |
 | `ContentMeta` | text | `meta` | The value goes in `content`. For the head. |
 | `ContentMarkdown` | markdown | `div` | Inserts the entity view's rendered HTML. Pass the view's item, never the source. |
@@ -123,7 +124,7 @@ page's own items.
 | `ContentDate` | dateTime | `time` | UTC instant in `datetime`; `dateStyle`, `timeStyle`, `timeZone` (default UTC) and `locale` format the text. |
 | `ContentBoolean` | boolean | `div` (or `as`) | Wraps page content and sets `hidden` when off (`invert` flips it). The content is the page's. |
 | `ContentLatLong` | latLong | `span` | schema.org `GeoCoordinates` with `latitude` and `longitude` microdata. |
-| `ContentLink` | link | `a` | `href`, `rel`, `hreflang` from `lang`; the text, or the href. `textItemProp` wraps the text in a `span` with that microdata property (`name` on a ListItem). |
+| `ContentLink` | link | `a` | `href`, `rel`, `hreflang` from `lang`; the text, or the href. `textItemProp` wraps the text in a `span` with that microdata property (`name` on a ListItem). With children (an icon, a card), it wraps them instead: the link item sets the target, the content is the page's. |
 | `ContentImage` | image | `picture` | `src`, then `mediumSrc` from 768px and `largeSrc` from 1024px. Empty but still tagged when there is no file. |
 | `Content<Type>List` | any | container (`ul`, or a component) | Every item of a name in sort order, each rendered by a child template given the ref and its index; `fallback` placeholder entries while empty. Writes `data-<type>-list`. |
 | `ContentRows` | (several) | `tbody` of `tr` (or components) | A table row per sort order across its column names; writes `data-content-rows` and `data-content-row`. |
@@ -199,6 +200,33 @@ or text followed by a link, when only the address is:
 ```
 
 Use `linkify` only where a separate link item does not fit.
+
+A link around other content (an icon, an image, a whole card) takes it as
+children. The link item sets only where it goes; the content stays the
+page's, tagged with its own components, and the editor never replaces it:
+
+```tsx
+<ContentLink content={ref(view.link('crm_card_link'), 'crm_card_link')} placeholderHref="/solutions/crm">
+  <ContentText as="h3" content={ref(view.text('crm_card_title'), 'crm_card_title')} placeholder="CRM" />
+</ContentLink>
+```
+
+### Code samples
+
+A code sample is a text item, kept verbatim by `ContentCode`. Its language
+is a second text item, bound to the `<pre>` with `bindAttribute`, so it is
+translated and edited like the code, and the page's highlighter reads it.
+Pass the highlighted tokens as children; their text must equal the value:
+
+```tsx
+const sample = view.text('install_code');
+const language = view.text('install_code_language');
+<pre {...bindAttribute('data-language', ref(language, 'install_code_language'), 'sh')}>
+  <ContentCode content={ref(sample, 'install_code')} placeholder="npm install @baack-software/baack-ts-client">
+    {highlight(sample?.value ?? 'npm install @baack-software/baack-ts-client', language?.value ?? 'sh')}
+  </ContentCode>
+</pre>
+```
 
 ### Markdown and templates
 
@@ -527,6 +555,8 @@ The DOM contract (`data-<type>-name`, `-sort-order`, `-urn`) plus:
 | --- | --- |
 | `data-placeholder` | The element shows its placeholder; there is no item, so no `-urn`. |
 | `data-text-layout="paragraphs"` | Rendered by `ContentTextBlock`. |
+| `data-text-layout="code"` | Rendered by `ContentCode`: the value verbatim. |
+| `data-link-wraps` | A link around page content: the editor changes the link, never the content. |
 | `data-text-linkify` | Links were made from URLs and emails. |
 | `data-text-unsafe-literal` | The page inserts this text value as HTML (`unsafeLiteral`). |
 | `data-locale` | Locale used for numbers and dates. |

@@ -204,7 +204,7 @@ const live = useLiveEntity(entity);
 
 ## Single items
 
-`ContentText`, `ContentTextBlock`, `ContentMeta`, `ContentMarkdown`,
+`ContentText`, `ContentTextBlock`, `ContentCode`, `ContentMeta`, `ContentMarkdown`,
 `ContentTemplate`, `ContentMoney`, `ContentLong`, `ContentDouble`,
 `ContentDate`, `ContentBoolean`, `ContentLatLong`, `ContentLink` and
 `ContentImage`. Each takes a `content` ref (`{name, sortOrder, item}`), a

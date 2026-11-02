@@ -618,6 +618,46 @@ export function optionSortOrders(
   return rowSortOrders([...labels.items, ...values.items], [labels.name, values.name], fallback);
 }
 
+export interface CodeProps extends CommonProps {
+  /** Shown while the item does not exist. */
+  placeholder: string;
+  /** Element to render; defaults to `code`, usually inside the page's `<pre>`. */
+  as?: string | undefined;
+}
+
+/** Code exactly as written: spaces, indentation and line breaks kept, with `\r\n` read as `\n`. */
+function codeText(value: string): string {
+  return value.replace(/\r\n?/g, '\n');
+}
+
+/**
+ * A code sample from a text item, kept verbatim for a `<pre>`. Its language
+ * is another text item, bound by the page to the `<pre>` (`bindAttribute`),
+ * for the page's highlighter. The React component takes the highlighted
+ * tokens as children; the editor writes back plain text.
+ */
+export const code: ComponentSpec<TextItem, CodeProps> = {
+  type: 'text',
+  volatile: volatileFor('text'),
+  ownsChildren: true,
+  render(ref, props) {
+    const value = ref.item && ref.item.value.trim() !== '' ? codeText(ref.item.value) : '';
+    const placeholder = value === '';
+    return h(
+      props.as ?? 'code',
+      {
+        ...passThrough(props.attributes),
+        class: props.className,
+        itemprop: props.itemProp,
+        ...contentAttributes('text', ref, placeholder),
+        'data-text-layout': 'code',
+      },
+      placeholder ? codeText(props.placeholder) : value,
+    );
+  },
+  propsFrom: (element) => ({ ...common(element), placeholder: '', as: element.localName }),
+};
+
 // ---------------------------------------------------------------------------
 // Links
 // ---------------------------------------------------------------------------
@@ -662,6 +702,27 @@ export const link: ComponentSpec<LinkItem, LinkProps> = {
     placeholder: '',
     textItemProp: element.querySelector(':scope > span[itemprop]')?.getAttribute('itemprop') ?? undefined,
   }),
+};
+
+/** A link around page content: no text of its own. */
+export type LinkWrapperProps = Omit<LinkProps, 'placeholder' | 'textItemProp'>;
+
+/**
+ * An `<a>` from a link item around the page's own content (an icon, a card):
+ * the link item sets the target, the children belong to the page, so the
+ * editor changes the link and never its content. Marked `data-link-wraps`.
+ */
+export const linkWrapper: ComponentSpec<LinkItem, LinkWrapperProps> = {
+  type: 'link',
+  volatile: link.volatile,
+  ownsChildren: false,
+  render(ref, props) {
+    const element = link.render(ref, { ...props, placeholder: '' });
+    element.attrs['data-link-wraps'] = '';
+    element.children = [];
+    return element;
+  },
+  propsFrom: (element) => common(element),
 };
 
 // ---------------------------------------------------------------------------

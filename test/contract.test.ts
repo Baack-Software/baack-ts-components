@@ -194,6 +194,27 @@ const cases: Case<any, any>[] = [
     props: [{ placeholder: 'P' }, { placeholder: 'P', placeholderHref: '/', itemProp: 'item', textItemProp: 'name', className: 'nav', ...pass }],
   },
   {
+    name: 'linkWrapper',
+    spec: spec.linkWrapper,
+    react: react.ContentLink,
+    items: [
+      { ...ts('kw1'), href: '/pricing', text: 'Pricing', rel: 'nofollow', lang: 'en' },
+      { ...ts('kw2'), href: 'https://www.baack.co/docs', text: '' },
+    ],
+    props: [{}, { placeholderHref: '/', itemProp: 'url', className: 'card', ...pass }],
+    children: 'Card content',
+  },
+  {
+    name: 'code',
+    spec: spec.code,
+    react: react.ContentCode,
+    items: [
+      { ...ts('c1'), value: 'function hello() {\n  return "hi"\n}\n' },
+      { ...ts('c2'), value: '  <a href="#">x</a>\r\n\r\n\tindented' },
+    ],
+    props: [{ placeholder: 'npm   install' }, { placeholder: 'P', as: 'span', className: 'code', ...pass }],
+  },
+  {
     name: 'image',
     spec: spec.image,
     react: react.ContentImage,
@@ -452,5 +473,39 @@ describe('select', () => {
     const attrs = spec.bindAttribute('placeholder', { name: 'search_placeholder', sortOrder: 0, item: { ...textA, urn: 's', value: 'Search\nthe docs' } as never }, '');
     assert.equal(attrs['placeholder'], 'Search the docs');
     assert.equal(attrs['data-attr-placeholder-urn'], 's');
+  });
+});
+
+describe('code', () => {
+  test('keeps spaces, indentation and line breaks; markup shows as typed', () => {
+    const element = toDom(spec.code.render(ref({ ...ts('c'), value: '  if (a <b>) {\r\n    go()\n  }' } as never), { placeholder: 'P' }), document) as Element;
+    assert.equal(element.textContent, '  if (a <b>) {\n    go()\n  }');
+    assert.equal(element.children.length, 0);
+    assert.equal(element.getAttribute('data-text-layout'), 'code');
+  });
+
+  test('React takes the highlighted tokens as children; the editor writes back plain text', () => {
+    const item = { ...ts('c'), value: 'const a = 1' };
+    const markup = renderToStaticMarkup(
+      createElement(react.ContentCode, { content: ref(item), placeholder: 'P' } as never, createElement('span', { className: 'kw' }, 'const'), ' a = 1'),
+    );
+    const element = parse(markup);
+    assert.equal(element.textContent, 'const a = 1');
+    assert.equal(element.querySelector('span.kw')?.textContent, 'const');
+    patch(element, spec.code.render(ref({ ...ts('c2'), value: 'let b = 2' } as never), spec.code.propsFrom(element)), spec.code.volatile, spec.code.ownsChildren);
+    assert.equal(normalize(element), normalize(toDom(spec.code.render(ref({ ...ts('c2'), value: 'let b = 2' } as never), { placeholder: 'P' }), document)));
+  });
+});
+
+describe('link wrapper', () => {
+  test('a write-back changes the target and keeps the page content', () => {
+    const markup = renderToStaticMarkup(
+      createElement(react.ContentLink, { content: ref(), placeholderHref: '/old' } as never, createElement('h3', {}, 'A card')),
+    );
+    const element = parse(markup);
+    assert.equal(element.hasAttribute('data-link-wraps'), true);
+    patch(element, spec.linkWrapper.render(ref({ ...ts('k'), href: '/new', text: 'Ignored' } as never), spec.linkWrapper.propsFrom(element)), spec.linkWrapper.volatile, spec.linkWrapper.ownsChildren);
+    assert.equal(element.getAttribute('href'), '/new');
+    assert.equal(element.innerHTML, '<h3>A card</h3>');
   });
 });
