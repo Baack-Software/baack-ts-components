@@ -117,7 +117,7 @@ page's own items.
 | `ContentCode` | text | `code` (or `as`) | A code sample, verbatim: spaces, indentation and line breaks kept. Put it in the page's `<pre>`. Takes the page's highlighted tokens as children; the editor writes back plain text. |
 | `ContentTextBlock` | text | `div` of `p` | Blank lines separate paragraphs. Escaped, with `unsafeLiteral` as for `ContentText`. |
 | `ContentMeta` | text | `meta` | The value goes in `content`. For the head. |
-| `ContentMarkdown` | markdown | `div` | Inserts the entity view's rendered HTML. Pass the view's item, never the source. |
+| `ContentMarkdown` | markdown | `div` | Inserts the entity view's rendered HTML. Pass the view's item, never the source. `children` show until it has a value. |
 | `ContentTemplate` | template | `div` | As markdown, for template output. |
 | `ContentMoney` | money | `span` | Symbol in a nested `span`, then the amount. `offer` adds schema.org `price` and `priceCurrency`. |
 | `ContentLong`, `ContentDouble` | long, double | `data` | Raw value in `value`, formatted text inside. |
@@ -125,7 +125,7 @@ page's own items.
 | `ContentBoolean` | boolean | `div` (or `as`) | Wraps page content and sets `hidden` when off (`invert` flips it). The content is the page's. |
 | `ContentLatLong` | latLong | `span` | schema.org `GeoCoordinates` with `latitude` and `longitude` microdata. |
 | `ContentLink` | link | `a` | `href`, `rel`, `hreflang` from `lang`; the text, or the href. `textItemProp` wraps the text in a `span` with that microdata property (`name` on a ListItem). With children (an icon, a card), it wraps them instead: the link item sets the target, the content is the page's. |
-| `ContentImage` | image | `picture` | `src`, then `mediumSrc` from 768px and `largeSrc` from 1024px. Empty but still tagged when there is no file. |
+| `ContentImage` | image | `picture` | `src`, then `mediumSrc` from 768px and `largeSrc` from 1024px. Empty but still tagged when there is no file, unless it has `children`, which show until then. |
 | `Content<Type>List` | any | container (`ul`, or a component) | Every item of a name in sort order, each rendered by a child template given the ref and its index; `fallback` placeholder entries while empty. Writes `data-<type>-list`. |
 | `ContentRows` | (several) | `tbody` of `tr` (or components) | A table row per sort order across its column names; writes `data-content-rows` and `data-content-row`. |
 | `ContentSection` | text | `section` (or `as`) | A page section, or a card, ordered by a text item naming its key; the value goes in `data-section` and the content is the page's. |
@@ -239,6 +239,22 @@ inline styling.
 <ContentMarkdown content={ref(view.markdown('privacy_body'), 'privacy_body')} placeholder="Our privacy policy." className="prose" />
 ```
 
+A site that already renders its markdown passes that rendering as `children`.
+It shows until the item has a value, then the entity view's HTML replaces it, so
+a page can be tagged without changing how it looks. The element is marked
+`data-markdown-wraps`. The source is not in the page, so the content is created
+from the site's own files: the editor's **Create all** skips these elements.
+
+Set `replaceChildren={false}` to keep showing `children` when the item has a
+value, for a site that renders the value itself. A save in the editor shows the
+item's value until the next build.
+
+```tsx
+<ContentMarkdown content={ref(view.markdown('body'), 'body')} placeholder="" className="prose">
+  {renderedBody}
+</ContentMarkdown>
+```
+
 ### Money
 
 Money is integer minor units, formatted from the API's `formattedValue` and
@@ -291,6 +307,11 @@ when the flag is off.
 <ContentImage content={ref(view.image('hero_image'), 'hero_image')} placeholderAlt="" priority imgClassName="rounded-lg" />
 <ContentLatLong content={ref(view.latLong('office'), 'office')} placeholder="London" itemProp="geo" />
 ```
+
+`children` are shown inside the `<picture>` until the item has a file, for a
+site that already has the image; the item's file replaces them, unless
+`replaceChildren={false}`. The element is marked `data-image-wraps` while it
+shows them.
 
 `priority` is for an image above the fold: it loads eagerly with a high
 fetch priority. `placeholderAlt=""` marks a decorative image.
@@ -557,6 +578,7 @@ The DOM contract (`data-<type>-name`, `-sort-order`, `-urn`) plus:
 | `data-text-layout="paragraphs"` | Rendered by `ContentTextBlock`. |
 | `data-text-layout="code"` | Rendered by `ContentCode`: the value verbatim. |
 | `data-link-wraps` | A link around page content: the editor changes the link, never the content. |
+| `data-markdown-wraps`, `data-image-wraps` | The element shows the page's own rendering (`children`): its text is not the item's source. |
 | `data-text-linkify` | Links were made from URLs and emails. |
 | `data-text-unsafe-literal` | The page inserts this text value as HTML (`unsafeLiteral`). |
 | `data-locale` | Locale used for numbers and dates. |

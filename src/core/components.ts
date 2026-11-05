@@ -269,12 +269,14 @@ export interface RenderedProps extends CommonProps {
   /** Plain text shown while the item does not exist. */
   placeholder: string;
   as?: string | undefined;
+  /** The page shows its own rendering here (`children`): no placeholder text, and marked `data-<type>-wraps`. */
+  wraps?: boolean | undefined;
 }
 
 function rendered<I extends MarkdownItem | TemplateItem>(type: 'markdown' | 'template'): ComponentSpec<I, RenderedProps> {
   return {
     type,
-    volatile: volatileFor(type),
+    volatile: volatileFor(type, `data-${type}-wraps`),
     ownsChildren: true,
     render(ref, props) {
       // The value is the entity view's rendering. Never pass an item's source here.
@@ -285,15 +287,16 @@ function rendered<I extends MarkdownItem | TemplateItem>(type: 'markdown' | 'tem
         class: props.className,
         itemprop: props.itemProp,
         ...contentAttributes(type, ref, placeholder),
+        [`data-${type}-wraps`]: placeholder && props.wraps ? '' : undefined,
       });
       if (placeholder) {
-        element.children = [h('p', {}, props.placeholder)];
+        if (!props.wraps) element.children = [h('p', {}, props.placeholder)];
       } else {
         element.html = html;
       }
       return element;
     },
-    propsFrom: (element) => ({ ...common(element), placeholder: '', as: element.localName }),
+    propsFrom: (element) => ({ ...common(element), placeholder: '', as: element.localName, wraps: element.hasAttribute(`data-${type}-wraps`) }),
   };
 }
 
@@ -741,6 +744,8 @@ export interface ImageProps {
   priority?: boolean | undefined;
   itemProp?: string | undefined;
   imgClassName?: string | undefined;
+  /** The page shows its own image here (`children`) while there is no file: marked `data-image-wraps`. */
+  wraps?: boolean | undefined;
   /** Pass-through attributes for the `<picture>`; see `PassThrough`. */
   attributes?: PassThrough | undefined;
 }
@@ -752,7 +757,7 @@ export interface ImageProps {
  */
 export const image: ComponentSpec<ImageItem, ImageProps> = {
   type: 'image',
-  volatile: volatileFor('image'),
+  volatile: volatileFor('image', 'data-image-wraps'),
   ownsChildren: true,
   render(ref, props) {
     const item = ref.item;
@@ -765,6 +770,7 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
       'data-image-alt': props.placeholderAlt,
       'data-image-item-prop': props.itemProp,
       'data-image-img-class': props.imgClassName,
+      'data-image-wraps': !item?.src && props.wraps ? '' : undefined,
     };
     if (!item?.src) return h('picture', attrs);
     return h(
@@ -788,6 +794,7 @@ export const image: ComponentSpec<ImageItem, ImageProps> = {
     priority: element.hasAttribute('data-image-priority'),
     itemProp: element.getAttribute('data-image-item-prop') ?? undefined,
     imgClassName: element.getAttribute('data-image-img-class') ?? undefined,
+    wraps: element.hasAttribute('data-image-wraps'),
     placeholderAlt: element.getAttribute('data-image-alt') ?? undefined,
   }),
 };

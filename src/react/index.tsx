@@ -131,8 +131,30 @@ export function ContentMeta(props: Props<TextItem, spec.MetaProps>) {
 }
 
 /** Pass the entity view's item: its value is the rendered HTML. */
-export function ContentMarkdown(props: Props<MarkdownItem, spec.RenderedProps>) {
-  return render(spec.markdown, props);
+/** The page's own rendering of a component's content, for a site that already renders it. */
+interface PageChildren {
+  children?: ReactNode;
+  /** Whether the item's content replaces `children` once it is available. Default true. */
+  replaceChildren?: boolean | undefined;
+}
+
+/** Renders `children` in the component's root, marked `data-<type>-wraps`, unless the item's content replaces them. */
+function renderWithChildren<I, P extends { wraps?: boolean | undefined }>(
+  component: spec.ComponentSpec<I, P>,
+  props: Content<I> & P & PageChildren,
+  hasContent: boolean,
+): ReactNode {
+  const { children, replaceChildren = true } = props;
+  if (children === undefined || (hasContent && replaceChildren)) return render(component, props);
+  const node = component.render(props.content, { ...props, wraps: true, attributes: attributes(props) });
+  node.attrs[`data-${component.type}-wraps`] = '';
+  delete node.html;
+  return toReact(node, undefined, children);
+}
+
+/** The entity view's rendered HTML, or `children` until it has a value (see `PageChildren`). */
+export function ContentMarkdown(props: Props<MarkdownItem, spec.RenderedProps> & PageChildren) {
+  return renderWithChildren(spec.markdown, props, Boolean(props.content.item?.value?.trim()));
 }
 
 /** Pass the entity view's item: its value is the template output. */
@@ -170,8 +192,9 @@ export function ContentLink(props: (Props<LinkItem, spec.LinkProps> & { children
   return props.children === undefined ? render(spec.link, props as Props<LinkItem, spec.LinkProps>) : render(spec.linkWrapper, props, props.children);
 }
 
-export function ContentImage(props: Props<ImageItem, spec.ImageProps>) {
-  return render(spec.image, props);
+/** The item's file in a `<picture>`, or `children` until it has one (see `PageChildren`). */
+export function ContentImage(props: Props<ImageItem, spec.ImageProps> & PageChildren) {
+  return renderWithChildren(spec.image, props, Boolean(props.content.item?.src));
 }
 
 // ---------------------------------------------------------------------------

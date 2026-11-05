@@ -497,6 +497,77 @@ describe('code', () => {
   });
 });
 
+describe('the page\'s rendering until an item has a value', () => {
+  const page = createElement('h2', { id: 'intro' }, 'Page rendering');
+
+  test('ContentMarkdown shows its children, tagged as a placeholder, instead of the placeholder text', () => {
+    const element = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref(undefined), placeholder: '# Source', className: 'prose' } as never, page)));
+    assert.equal(element.querySelector('h2#intro')?.textContent, 'Page rendering');
+    assert.equal(element.textContent?.includes('# Source'), false);
+    assert.equal(element.hasAttribute('data-placeholder'), true);
+    assert.equal(element.hasAttribute('data-markdown-wraps'), true);
+    assert.equal(element.getAttribute('class'), 'prose');
+  });
+
+  test('ContentMarkdown\'s value replaces its children, and a blank value does not', () => {
+    const filled = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref({ ...ts('m'), value: '<p>From Baack</p>' }), placeholder: 'P' } as never, page)));
+    assert.equal(filled.innerHTML, '<p>From Baack</p>');
+    assert.equal(filled.hasAttribute('data-placeholder'), false);
+    assert.equal(filled.hasAttribute('data-markdown-wraps'), false);
+    const blank = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref({ ...ts('m'), value: '  ' }), placeholder: 'P' } as never, page)));
+    assert.equal(blank.querySelector('h2#intro')?.textContent, 'Page rendering');
+  });
+
+  test('ContentMarkdown without children still shows the placeholder text', () => {
+    const element = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref(undefined), placeholder: 'Our policy.' } as never)));
+    assert.equal(element.innerHTML, '<p>Our policy.</p>');
+    assert.equal(element.hasAttribute('data-markdown-wraps'), false);
+  });
+
+  test('ContentImage shows its children until the item has a file, and the file replaces them', () => {
+    const own = createElement('img', { src: '/own.jpg', alt: '' });
+    const empty = parse(renderToStaticMarkup(createElement(react.ContentImage, { content: ref(undefined), placeholderAlt: '' } as never, own)));
+    assert.equal(empty.localName, 'picture');
+    assert.equal(empty.querySelector('img')?.getAttribute('src'), '/own.jpg');
+    assert.equal(empty.hasAttribute('data-placeholder'), true);
+    assert.equal(empty.hasAttribute('data-image-wraps'), true);
+    const noFile = parse(renderToStaticMarkup(createElement(react.ContentImage, { content: ref({ ...ts('i'), src: null }), placeholderAlt: '' } as never, own)));
+    assert.equal(noFile.querySelector('img')?.getAttribute('src'), '/own.jpg');
+    const filled = parse(renderToStaticMarkup(createElement(react.ContentImage, { content: ref({ ...ts('i'), src: '/baack.jpg' }), placeholderAlt: '' } as never, own)));
+    assert.equal(filled.querySelector('img')?.getAttribute('src'), '/baack.jpg');
+    assert.equal(filled.querySelectorAll('img').length, 1);
+    assert.equal(filled.hasAttribute('data-image-wraps'), false);
+  });
+
+  test('replaceChildren={false} keeps the page\'s rendering when the item has content', () => {
+    const markdown = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref({ ...ts('m'), value: '<p>From Baack</p>' }), placeholder: 'P', replaceChildren: false } as never, page)));
+    assert.equal(markdown.querySelector('h2#intro')?.textContent, 'Page rendering');
+    assert.equal(markdown.textContent?.includes('From Baack'), false);
+    assert.equal(markdown.getAttribute('data-markdown-urn'), 'm');
+    assert.equal(markdown.hasAttribute('data-placeholder'), false);
+    assert.equal(markdown.hasAttribute('data-markdown-wraps'), true);
+    const image = parse(renderToStaticMarkup(createElement(react.ContentImage, { content: ref({ ...ts('i'), src: '/baack.jpg', mediumSrc: '/m.jpg' }), placeholderAlt: '', replaceChildren: false } as never, createElement('img', { src: '/own.jpg', alt: '' }))));
+    assert.equal(image.querySelector('img')?.getAttribute('src'), '/own.jpg');
+    assert.equal(image.querySelectorAll('source').length, 0);
+    assert.equal(image.getAttribute('data-image-urn'), 'i');
+  });
+
+  test('replaceChildren={true} is the same as leaving it out', () => {
+    const item = { ...ts('m'), value: '<p>From Baack</p>' };
+    const markup = (extra: object) => renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref(item), placeholder: 'P', ...extra } as never, page));
+    assert.equal(markup({ replaceChildren: true }), markup({}));
+  });
+
+  test('a write-back replaces the page\'s rendering with the item', () => {
+    const element = parse(renderToStaticMarkup(createElement(react.ContentMarkdown, { content: ref(undefined), placeholder: 'P' } as never, page)));
+    const item = { ...ts('m'), value: '<p>Saved</p>' };
+    patch(element, spec.markdown.render(ref(item as never), spec.markdown.propsFrom(element)), spec.markdown.volatile, spec.markdown.ownsChildren);
+    assert.equal(element.innerHTML, '<p>Saved</p>');
+    assert.equal(element.hasAttribute('data-placeholder'), false);
+    assert.equal(element.hasAttribute('data-markdown-wraps'), false);
+  });
+});
+
 describe('link wrapper', () => {
   test('a write-back changes the target and keeps the page content', () => {
     const markup = renderToStaticMarkup(
