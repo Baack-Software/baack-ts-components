@@ -670,6 +670,10 @@ export interface LinkProps extends CommonProps {
   placeholder: string;
   /** Target while the item does not exist. Defaults to "#". */
   placeholderHref?: string | undefined;
+  /** `rel` while the item does not exist, such as "nofollow". */
+  placeholderRel?: string | undefined;
+  /** `target` while the item does not exist, such as "_blank". */
+  placeholderTarget?: string | undefined;
   /**
    * Microdata property for the link's text, which is then wrapped in a
    * `<span itemprop>`; for example `name` on a ListItem whose `item` is the
@@ -678,13 +682,19 @@ export interface LinkProps extends CommonProps {
   textItemProp?: string | undefined;
 }
 
-/** An `<a>` from a link item: `href`, `rel`, `hreflang` from `lang`, and its text (or the href). */
+/** A link item's `target` ("_blank"), typed on `LinkItem` from baack-ts-client 0.0.15; earlier clients pass it untyped. */
+type TargetedLinkItem = LinkItem & { target?: string | undefined };
+
+/**
+ * An `<a>` from a link item: `href`, `rel`, `target`, `hreflang` from `lang`, and its text (or the href). While the
+ * item does not exist, the placeholder props stand in for `href`, `rel` and `target`.
+ */
 export const link: ComponentSpec<LinkItem, LinkProps> = {
   type: 'link',
-  volatile: volatileFor('link', 'rel', 'hreflang'),
+  volatile: volatileFor('link', 'rel', 'target', 'hreflang'),
   ownsChildren: true,
   render(ref, props) {
-    const item = ref.item;
+    const item: TargetedLinkItem | undefined = ref.item;
     const label = item ? item.text || item.href : props.placeholder;
     return h(
       'a',
@@ -693,7 +703,8 @@ export const link: ComponentSpec<LinkItem, LinkProps> = {
         class: props.className,
         itemprop: props.itemProp,
         href: item ? item.href : props.placeholderHref ?? '#',
-        rel: item?.rel || undefined,
+        rel: (item ? item.rel : props.placeholderRel) || undefined,
+        target: (item ? item.target : props.placeholderTarget) || undefined,
         hreflang: item?.lang || undefined,
         ...contentAttributes('link', ref, !item),
       },

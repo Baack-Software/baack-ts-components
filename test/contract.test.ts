@@ -188,20 +188,28 @@ const cases: Case<any, any>[] = [
     spec: spec.link,
     react: react.ContentLink,
     items: [
-      { ...ts('k1'), href: '/pricing', text: 'Pricing', rel: 'nofollow', lang: 'en' },
+      { ...ts('k1'), href: '/pricing', text: 'Pricing', rel: 'nofollow', target: '_blank', lang: 'en' },
       { ...ts('k2'), href: 'https://www.baack.co/docs', text: '' },
     ],
-    props: [{ placeholder: 'P' }, { placeholder: 'P', placeholderHref: '/', itemProp: 'item', textItemProp: 'name', className: 'nav', ...pass }],
+    props: [
+      { placeholder: 'P' },
+      { placeholder: 'P', placeholderHref: '/', itemProp: 'item', textItemProp: 'name', className: 'nav', ...pass },
+      { placeholder: 'P', placeholderHref: 'https://example.com/', placeholderRel: 'nofollow', placeholderTarget: '_blank' },
+    ],
   },
   {
     name: 'linkWrapper',
     spec: spec.linkWrapper,
     react: react.ContentLink,
     items: [
-      { ...ts('kw1'), href: '/pricing', text: 'Pricing', rel: 'nofollow', lang: 'en' },
+      { ...ts('kw1'), href: '/pricing', text: 'Pricing', rel: 'nofollow', target: '_blank', lang: 'en' },
       { ...ts('kw2'), href: 'https://www.baack.co/docs', text: '' },
     ],
-    props: [{}, { placeholderHref: '/', itemProp: 'url', className: 'card', ...pass }],
+    props: [
+      {},
+      { placeholderHref: '/', itemProp: 'url', className: 'card', ...pass },
+      { placeholderHref: 'https://example.com/', placeholderRel: 'nofollow', placeholderTarget: '_blank' },
+    ],
     children: 'Card content',
   },
   {
@@ -578,5 +586,21 @@ describe('link wrapper', () => {
     patch(element, spec.linkWrapper.render(ref({ ...ts('k'), href: '/new', text: 'Ignored' } as never), spec.linkWrapper.propsFrom(element)), spec.linkWrapper.volatile, spec.linkWrapper.ownsChildren);
     assert.equal(element.getAttribute('href'), '/new');
     assert.equal(element.innerHTML, '<h3>A card</h3>');
+  });
+
+  test('rel and target come from the placeholder props until the item exists, then from the item', () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        react.ContentLink,
+        { content: ref(), placeholderHref: 'https://example.com/', placeholderRel: 'nofollow', placeholderTarget: '_blank' } as never,
+        createElement('svg', {}),
+      ),
+    );
+    const element = parse(markup);
+    assert.equal(element.getAttribute('rel'), 'nofollow');
+    assert.equal(element.getAttribute('target'), '_blank');
+    patch(element, spec.linkWrapper.render(ref({ ...ts('k'), href: 'https://example.org/', rel: 'me' } as never), spec.linkWrapper.propsFrom(element)), spec.linkWrapper.volatile, spec.linkWrapper.ownsChildren);
+    assert.equal(element.getAttribute('rel'), 'me');
+    assert.equal(element.hasAttribute('target'), false);
   });
 });

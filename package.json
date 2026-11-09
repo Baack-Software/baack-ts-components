@@ -1,6 +1,6 @@
 {
   "name": "@baack-software/baack-ts-components",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Content components that render Baack items so the Baack editor can edit them in place",
   "license": "Apache-2.0",
   "repository": {

@@ -124,7 +124,7 @@ page's own items.
 | `ContentDate` | dateTime | `time` | UTC instant in `datetime`; `dateStyle`, `timeStyle`, `timeZone` (default UTC) and `locale` format the text. |
 | `ContentBoolean` | boolean | `div` (or `as`) | Wraps page content and sets `hidden` when off (`invert` flips it). The content is the page's. |
 | `ContentLatLong` | latLong | `span` | schema.org `GeoCoordinates` with `latitude` and `longitude` microdata. |
-| `ContentLink` | link | `a` | `href`, `rel`, `hreflang` from `lang`; the text, or the href. `textItemProp` wraps the text in a `span` with that microdata property (`name` on a ListItem). With children (an icon, a card), it wraps them instead: the link item sets the target, the content is the page's. |
+| `ContentLink` | link | `a` | `href`, `rel`, `target`, `hreflang` from `lang`; the text, or the href. `placeholderHref`, `placeholderRel` and `placeholderTarget` stand in until the item exists. `textItemProp` wraps the text in a `span` with that microdata property (`name` on a ListItem). With children (an icon, a card), it wraps them instead: the link item sets the target, the content is the page's. |
 | `ContentImage` | image | `picture` | `src`, then `mediumSrc` from 768px and `largeSrc` from 1024px. Empty but still tagged when there is no file, unless it has `children`, which show until then. |
 | `Content<Type>List` | any | container (`ul`, or a component) | Every item of a name in sort order, each rendered by a child template given the ref and its index; `fallback` placeholder entries while empty. Writes `data-<type>-list`. |
 | `ContentRows` | (several) | `tbody` of `tr` (or components) | A table row per sort order across its column names; writes `data-content-rows` and `data-content-row`. |
@@ -181,8 +181,10 @@ not markup in the value:
 
 ### Links, and email addresses in copy
 
-`ContentLink` renders an `<a>` from a link item's `href`, `text`, `rel` and
-`lang`. Turn an email address or URL in copy into a link item rather than
+`ContentLink` renders an `<a>` from a link item's `href`, `text`, `rel`,
+`target` and `lang`. Until the item exists, `placeholderHref`,
+`placeholderRel` and `placeholderTarget` stand in, so a placeholder link
+already opens as the item will. Turn an email address or URL in copy into a link item rather than
 relying on `linkify`. "Email sales@baack.co" becomes either one link, when
 the whole phrase is the action:
 
@@ -208,6 +210,18 @@ page's, tagged with its own components, and the editor never replaces it:
 ```tsx
 <ContentLink content={ref(view.link('crm_card_link'), 'crm_card_link')} placeholderHref="/solutions/crm">
   <ContentText as="h3" content={ref(view.text('crm_card_title'), 'crm_card_title')} placeholder="CRM" />
+</ContentLink>
+```
+
+A link that opens in a new tab sets `target` on its item (`_blank`), with
+`rel` for the relationship (`nofollow`, `me`). Say so to screen reader users
+in the page's content, since the item has no text for it:
+
+```tsx
+<ContentLink content={ref(view.link('social_link'), 'social_link')} placeholderHref="https://github.com/Baack-Software"
+  placeholderRel="nofollow" placeholderTarget="_blank">
+  <ContentText content={ref(view.text('social_label'), 'social_label')} placeholder="Baack on GitHub" />
+  <span className="sr-only"><ContentText content={ref(view.text('new_tab'), 'new_tab')} placeholder="(opens in a new tab)" /></span>
 </ContentLink>
 ```
 
